@@ -1,3 +1,11 @@
+use clap::Parser;
+mod cli;
+
 fn main() {
-    println!("Hello, world!");
+    let args = cli::Args::parse();
+
+    match args.total_value {
+        Some(value) => println!("Arg {:?}", value),
+        None => println!("Not implemeted yet!"),
+    }
 }
