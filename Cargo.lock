@@ -222,6 +222,7 @@ dependencies = [
  "clap",
  "directories",
  "rusqlite",
+ "thiserror",
 ]
 
 [[package]]
