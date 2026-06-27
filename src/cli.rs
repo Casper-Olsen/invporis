@@ -4,5 +4,5 @@ use clap::Parser;
 #[command(version, long_about = None)]
 pub struct Args {
     #[arg(short = 't', long = "total-value")]
-    pub total_value: Option<String>,
+    pub total_value: bool,
 }
