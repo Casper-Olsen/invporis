@@ -4,7 +4,7 @@ mod data;
 use clap::Parser;
 
 use crate::cli::parser::Args;
-use crate::data::sqlite::{self, DataError};
+use crate::data::db::{DataError, Db};
 
 fn main() -> Result<(), DataError> {
     let args = Args::parse();
@@ -16,7 +16,7 @@ fn main() -> Result<(), DataError> {
         return Ok(());
     }
 
-    sqlite::initialize()?;
+    let db = Db::open()?;
 
     Ok(())
 }

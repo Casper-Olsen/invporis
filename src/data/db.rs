@@ -16,18 +16,24 @@ pub enum DataError {
     Sqlite(#[from] rusqlite::Error),
 }
 
-pub fn initialize() -> Result<(), DataError> {
-    let mut path = get_data_directory()?;
-    path.push("invporis.db");
+pub struct Db {
+    pub connection: Connection,
+}
 
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent)?;
+impl Db {
+    pub fn open() -> Result<Db, DataError> {
+        let mut path = get_data_directory()?;
+        path.push("invporis.db");
+
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent)?;
+        }
+
+        // If a database does not exist at the path, one is created.
+        let conn = Connection::open(&path)?;
+
+        Ok(Self { connection: conn })
     }
-
-    // If a database does not exist at the path, one is created.
-    let _conn = Connection::open(&path)?;
-
-    Ok(())
 }
 
 fn get_data_directory() -> Result<PathBuf, DataError> {
