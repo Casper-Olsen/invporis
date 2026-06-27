@@ -1,2 +1,7 @@
 # invporis
-Investment portfolio tool
+
+*Pronounced: in-VOR-iss*
+
+## Overview
+
+invporis is an investment portfolio tool.
