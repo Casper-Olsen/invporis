@@ -22,15 +22,13 @@ pub struct Db {
 
 impl Db {
     pub fn open() -> Result<Db, DataError> {
-        let mut path = get_data_directory()?;
-        path.push("invporis.db");
+        let data_dir = get_data_directory()?;
+        fs::create_dir_all(&data_dir)?;
 
-        if let Some(parent) = path.parent() {
-            fs::create_dir_all(parent)?;
-        }
+        let db_path = data_dir.join("invporis.db");
 
         // If a database does not exist at the path, one is created.
-        let conn = Connection::open(&path)?;
+        let conn = Connection::open(&db_path)?;
 
         Ok(Self { connection: conn })
     }
