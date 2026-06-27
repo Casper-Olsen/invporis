@@ -4,4 +4,4 @@
 
 ## Overview
 
-invporis is an investment portfolio tool.
+**invporis** is an investment portfolio tool.
