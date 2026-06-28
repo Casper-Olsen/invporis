@@ -2,6 +2,7 @@ mod cli;
 mod data;
 
 use clap::Parser;
+use colored::Colorize;
 
 use crate::cli::parser::Args;
 use crate::data::db::{DataError, Db};
@@ -12,7 +13,7 @@ fn main() -> Result<(), DataError> {
     if args.total_value {
         println!("Getting total value ...");
     } else {
-        eprintln!("Exiting!");
+        eprintln!("{}", "Argument not provided. Exiting...".red());
         return Ok(());
     }
 
