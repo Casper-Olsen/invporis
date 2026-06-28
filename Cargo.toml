@@ -19,6 +19,3 @@ thiserror = "2.0.18"
 pedantic = "warn"
 nursery = "warn"
 cargo = "warn"
-
-# [patch.crates-io]
-# hashbrown = { git = "https://github.com/liveloveapp/hashbrown", tag = "v0.17.1" }
