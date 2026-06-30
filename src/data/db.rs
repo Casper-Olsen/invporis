@@ -54,7 +54,7 @@ impl Db {
 }
 
 fn get_data_directory() -> Result<PathBuf, DataError> {
-    ProjectDirs::from("com", "Casper-Olsen", "invporis")
+    ProjectDirs::from("io", "casperolsen", "invporis")
         .map(|p| p.data_dir().to_path_buf())
         .ok_or(DataError::Path("Could not determine data directory"))
 }

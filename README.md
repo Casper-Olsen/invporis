@@ -36,5 +36,5 @@ Run the compiled binary:
 invporis stores a SQLite database in the system data directory:
 
 - Linux: `~/.local/share/invporis/`
-- macOS: `~/Library/Application Support/com.Casper-Olsen.invporis/`
-- Windows: `%APPDATA%\Casper-Olsen\invporis\`
+- macOS: `~/Library/Application Support/io.casperolsen.invporis/`
+- Windows: `%APPDATA%\casperolsen\invporis\`
