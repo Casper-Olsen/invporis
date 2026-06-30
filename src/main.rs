@@ -5,7 +5,7 @@ mod domain;
 use clap::Parser;
 use colored::Colorize;
 
-use crate::cli::commands::{Commands, RootCommand};
+use crate::cli::command::{Commands, RootCommand};
 use crate::data::db::{DataError, Db};
 use crate::domain::trade::Trade;
 
