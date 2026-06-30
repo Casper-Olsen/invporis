@@ -14,7 +14,11 @@ fn main() -> Result<(), DataError> {
 
     match cli.command {
         Commands::Add(args) => {
-            let trade = Trade { event: args.event };
+            let trade = Trade {
+                event: args.event,
+                symbol: args.symbol,
+            };
+
             println!(
                 "Adding trade with event: {}",
                 trade.event.to_string().green()

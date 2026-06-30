@@ -3,6 +3,7 @@ use crate::domain::event::Event;
 #[derive(Debug)]
 pub struct Trade {
     pub event: Event,
+    pub symbol: String,
 }
 
 impl std::fmt::Display for Trade {

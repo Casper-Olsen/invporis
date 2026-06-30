@@ -24,5 +24,9 @@ pub enum Commands {
 
 #[derive(Args)]
 pub struct AddArgs {
+    #[arg(long, short, required = true)]
     pub event: Event,
+
+    #[arg(long, short, required = true)]
+    pub symbol: String,
 }

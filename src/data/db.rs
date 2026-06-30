@@ -34,7 +34,8 @@ impl Db {
         conn.execute(
             "CREATE TABLE IF NOT EXISTS trades (
              id INTEGER PRIMARY KEY,
-             event TEXT NOT NULL
+             event TEXT NOT NULL,
+             symbol TEXT NOT NULL
          )",
             (),
         )?;
@@ -44,8 +45,8 @@ impl Db {
 
     pub fn insert_trade(&self, trade: &Trade) -> Result<(), DataError> {
         self.connection.execute(
-            "insert into trades (event) values (?1)",
-            params![trade.event.to_string()],
+            "insert into trades (event, symbol) values (?1, ?2)",
+            params![trade.event.to_string(), trade.symbol],
         )?;
 
         Ok(())
