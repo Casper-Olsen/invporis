@@ -9,7 +9,14 @@ use crate::cli::command::{Commands, RootCommand};
 use crate::data::db::{DataError, Db};
 use crate::domain::trade::Trade;
 
-fn main() -> Result<(), DataError> {
+fn main() {
+    if let Err(data_error) = execute() {
+        eprintln!("{data_error}");
+        std::process::exit(1);
+    }
+}
+
+fn execute() -> Result<(), DataError> {
     let cli = RootCommand::parse();
 
     match cli.command {
