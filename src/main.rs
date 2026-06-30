@@ -1,36 +1,33 @@
 mod cli;
 mod data;
+mod domain;
 
 use clap::Parser;
 use colored::Colorize;
 
-use crate::cli::parser::Args;
-use crate::data::db::{DataError, Db, Event, Trade};
+use crate::cli::commands::{Commands, RootCommand};
+use crate::data::db::{DataError, Db};
+use crate::domain::trade::Trade;
 
 fn main() -> Result<(), DataError> {
-    let args = Args::parse();
+    let cli = RootCommand::parse();
 
-    match args {
-        Args {
-            total_value: true, ..
-        } => {
-            println!("Getting total value ...");
-        }
-        Args {
-            add_trade: true, ..
-        } => {
-            println!("Adding trade ...");
-
-            let trade = Trade { event: Event::Buy };
+    match cli.command {
+        Commands::Add(args) => {
+            let trade = Trade { event: args.event };
+            println!(
+                "Adding trade with event: {}",
+                trade.event.to_string().green()
+            );
 
             let db = Db::open()?;
             db.insert_trade(&trade)?;
+
+            Ok(())
         }
-        _ => {
-            eprintln!("{}", "Argument not provided. Exiting...".red());
-            return Ok(());
+        Commands::GetTotalValue => {
+            println!("Getting total value ...");
+            Ok(())
         }
     }
-
-    Ok(())
 }

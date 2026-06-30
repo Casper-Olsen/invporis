@@ -1,8 +1,9 @@
 use directories::ProjectDirs;
 use rusqlite::{Connection, Result, params};
 use std::{fs, path::PathBuf};
-
 use thiserror::Error;
+
+use crate::domain::trade::Trade;
 
 #[derive(Debug, Error)]
 pub enum DataError {
@@ -14,24 +15,6 @@ pub enum DataError {
 
     #[error("SQLite error: {0}")]
     Sqlite(#[from] rusqlite::Error),
-}
-
-pub enum Event {
-    Buy,
-}
-
-impl rusqlite::ToSql for Event {
-    fn to_sql(&self) -> Result<rusqlite::types::ToSqlOutput<'_>> {
-        let e = match self {
-            Self::Buy => "buy",
-        };
-
-        Ok(rusqlite::types::ToSqlOutput::from(e))
-    }
-}
-
-pub struct Trade {
-    pub event: Event,
 }
 
 pub struct Db {
@@ -62,7 +45,7 @@ impl Db {
     pub fn insert_trade(&self, trade: &Trade) -> Result<(), DataError> {
         self.connection.execute(
             "insert into trades (event) values (?1)",
-            params![trade.event],
+            params![trade.event.to_string()],
         )?;
 
         Ok(())
