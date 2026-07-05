@@ -1,5 +1,7 @@
 # invporis
 
+![Rust CI](https://github.com/Casper-Olsen/invporis/actions/workflows/rust.yml/badge.svg)
+
 *Pronounced: in-VOR-iss*
 
 ## Overview
