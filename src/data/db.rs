@@ -3,7 +3,7 @@ use rusqlite::{Connection, Result, params};
 use std::{fs, path::PathBuf};
 use thiserror::Error;
 
-use crate::cli;
+use crate::domain::trade::Trade;
 
 #[derive(Debug, Error)]
 pub enum DataError {
@@ -15,35 +15,6 @@ pub enum DataError {
 
     #[error("SQLite error: {0}")]
     Sqlite(#[from] rusqlite::Error),
-}
-
-#[derive(Clone, Debug)]
-pub enum Event {
-    Buy,
-}
-
-impl rusqlite::ToSql for Event {
-    fn to_sql(&self) -> Result<rusqlite::types::ToSqlOutput<'_>> {
-        let e = match self {
-            Self::Buy => "buy",
-        };
-
-        Ok(rusqlite::types::ToSqlOutput::from(e))
-    }
-}
-
-impl From<cli::command::Event> for Event {
-    fn from(item: cli::command::Event) -> Self {
-        match item {
-            cli::command::Event::Buy => Self::Buy,
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct Trade {
-    pub event: Event,
-    pub symbol: String,
 }
 
 pub struct Db {
@@ -75,7 +46,7 @@ impl Db {
     pub fn insert_trade(&self, trade: &Trade) -> Result<(), DataError> {
         self.connection.execute(
             "insert into trades (event, symbol) values (?1, ?2)",
-            params![trade.event, trade.symbol],
+            params![trade.event.as_str(), trade.symbol],
         )?;
 
         Ok(())

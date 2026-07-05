@@ -1,11 +1,13 @@
 mod cli;
 mod data;
+mod domain;
 
 use clap::Parser;
 use colored::Colorize;
 
 use crate::cli::command::{Commands, RootCommand};
-use crate::data::db::{DataError, Db, Trade};
+use crate::data::db::{DataError, Db};
+use crate::domain::trade::Trade;
 
 fn main() {
     if let Err(data_error) = execute() {
@@ -25,7 +27,7 @@ fn execute() -> Result<(), DataError> {
             );
 
             let trade = Trade {
-                event: data::db::Event::from(args.event),
+                event: domain::trade::Event::from(args.event),
                 symbol: args.symbol,
             };
 
