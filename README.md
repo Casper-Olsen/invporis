@@ -2,6 +2,8 @@
 
 ![Rust CI](https://github.com/Casper-Olsen/invporis/actions/workflows/rust.yml/badge.svg)
 
+> Work in progress — early development stage
+
 *Pronounced: in-VOR-iss*
 
 ## Overview
