@@ -30,6 +30,11 @@ fn execute(root_command: RootCommand) -> Result<(), DataError> {
             let trade = Trade {
                 event: domain::trade::Event::from(args.event),
                 symbol: args.symbol,
+                quantity: args.quantity,
+                price: args.price,
+                executed_at: args.executed_at,
+                currency: args.currency,
+                commission: args.commision,
             };
 
             let db = Db::open()?;
@@ -46,6 +51,9 @@ fn execute(root_command: RootCommand) -> Result<(), DataError> {
 
 #[cfg(test)]
 mod tests {
+    use chrono::Local;
+    use rust_decimal::dec;
+
     use crate::{
         cli::command::{AddArgs, Commands, RootCommand},
         execute,
@@ -57,6 +65,11 @@ mod tests {
             command: Commands::Add(AddArgs {
                 event: crate::cli::command::Event::Buy,
                 symbol: "test".to_string(),
+                quantity: dec!(33),
+                price: dec!(100),
+                executed_at: Local::now().to_utc(),
+                currency: "USD".to_string(),
+                commision: dec!(0),
             }),
         };
         let res = execute(root_command);

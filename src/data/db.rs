@@ -33,7 +33,12 @@ impl Db {
             "CREATE TABLE IF NOT EXISTS trades (
              id INTEGER PRIMARY KEY,
              event TEXT NOT NULL,
-             symbol TEXT NOT NULL
+             symbol TEXT NOT NULL,
+             quantity TEXT NOT NULL,
+             price TEXT NOT NULL,
+             executed_at INTEGER NOT NULL,
+             currency TEXT NOT NULL DEFAULT 'USD',
+             commission TEXT NOT NULL DEFAULT '0'
          )",
             (),
         )?;

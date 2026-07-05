@@ -1,3 +1,6 @@
+use chrono::{DateTime, Utc};
+use rust_decimal::Decimal;
+
 use crate::cli;
 
 #[derive(Clone, Debug)]
@@ -25,4 +28,9 @@ impl From<cli::command::Event> for Event {
 pub struct Trade {
     pub event: Event,
     pub symbol: String,
+    pub quantity: Decimal,
+    pub price: Decimal,
+    pub executed_at: DateTime<Utc>,
+    pub currency: String,
+    pub commission: Decimal,
 }

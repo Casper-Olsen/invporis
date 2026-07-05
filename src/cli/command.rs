@@ -1,4 +1,6 @@
+use chrono::{DateTime, Utc};
 use clap::{Args, Parser, Subcommand, ValueEnum};
+use rust_decimal::{Decimal, dec};
 
 #[derive(ValueEnum, Clone, Debug)]
 pub enum Event {
@@ -41,4 +43,19 @@ pub struct AddArgs {
 
     #[arg(long, short, required = true)]
     pub symbol: String,
+
+    #[arg(long, short, required = false, default_value_t = dec!(1))]
+    pub quantity: Decimal,
+
+    #[arg(long, short, required = true)]
+    pub price: Decimal,
+
+    #[arg(long, short, required = true)]
+    pub executed_at: DateTime<Utc>,
+
+    #[arg(long, short, required = false, default_value = "USD")]
+    pub currency: String,
+
+    #[arg(long, short, required = true, default_value_t = dec!(0))]
+    pub commision: Decimal,
 }
