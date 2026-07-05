@@ -34,7 +34,7 @@ fn execute(root_command: RootCommand) -> Result<(), DataError> {
                 price: args.price,
                 executed_at: args.executed_at,
                 currency: args.currency,
-                commission: args.commision,
+                fee: args.fee,
             };
 
             let db = Db::open()?;
@@ -69,10 +69,11 @@ mod tests {
                 price: dec!(100),
                 executed_at: Local::now().to_utc(),
                 currency: "USD".to_string(),
-                commision: dec!(0),
+                fee: dec!(0),
             }),
         };
         let res = execute(root_command);
+        println!("{res:?}");
         assert!(res.is_ok());
     }
 }

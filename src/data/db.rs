@@ -38,7 +38,7 @@ impl Db {
              price TEXT NOT NULL,
              executed_at INTEGER NOT NULL,
              currency TEXT NOT NULL DEFAULT 'USD',
-             commission TEXT NOT NULL DEFAULT '0'
+             fee TEXT NOT NULL DEFAULT '0'
          )",
             (),
         )?;

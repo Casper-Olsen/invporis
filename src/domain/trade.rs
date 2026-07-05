@@ -6,12 +6,14 @@ use crate::cli;
 #[derive(Clone, Debug)]
 pub enum Event {
     Buy,
+    Sell,
 }
 
 impl Event {
     pub const fn as_str(&self) -> &'static str {
         match self {
             Self::Buy => "buy",
+            Self::Sell => "sell",
         }
     }
 }
@@ -20,6 +22,7 @@ impl From<cli::command::Event> for Event {
     fn from(item: cli::command::Event) -> Self {
         match item {
             cli::command::Event::Buy => Self::Buy,
+            cli::command::Event::Sell => Self::Sell,
         }
     }
 }
@@ -32,5 +35,5 @@ pub struct Trade {
     pub price: Decimal,
     pub executed_at: DateTime<Utc>,
     pub currency: String,
-    pub commission: Decimal,
+    pub fee: Decimal,
 }
