@@ -7,6 +7,7 @@ use colored::Colorize;
 
 use crate::cli::command::{Commands, RootCommand};
 use crate::data::db::{DataError, Db};
+use crate::data::trade_store;
 use crate::domain::trade::Trade;
 
 fn main() {
@@ -32,7 +33,7 @@ fn execute() -> Result<(), DataError> {
             };
 
             let db = Db::open()?;
-            db.insert_trade(&trade)?;
+            trade_store::insert_trade(&db, &trade)?;
 
             Ok(())
         }

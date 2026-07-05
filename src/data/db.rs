@@ -1,9 +1,7 @@
 use directories::ProjectDirs;
-use rusqlite::{Connection, Result, params};
+use rusqlite::{Connection, Result};
 use std::{fs, path::PathBuf};
 use thiserror::Error;
-
-use crate::domain::trade::Trade;
 
 #[derive(Debug, Error)]
 pub enum DataError {
@@ -18,7 +16,7 @@ pub enum DataError {
 }
 
 pub struct Db {
-    connection: Connection,
+    pub connection: Connection,
 }
 
 impl Db {
@@ -41,15 +39,6 @@ impl Db {
         )?;
 
         Ok(Self { connection })
-    }
-
-    pub fn insert_trade(&self, trade: &Trade) -> Result<(), DataError> {
-        self.connection.execute(
-            "insert into trades (event, symbol) values (?1, ?2)",
-            params![trade.event.as_str(), trade.symbol],
-        )?;
-
-        Ok(())
     }
 }
 
