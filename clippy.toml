@@ -1,0 +1,4 @@
+allowed-duplicate-crates = [
+    "hashbrown",
+    "syn"
+]
