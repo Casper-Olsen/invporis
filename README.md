@@ -1,6 +1,6 @@
 # invporis
 
-![Rust CI](https://github.com/Casper-Olsen/invporis/actions/workflows/rust.yml/badge.svg)
+![Rust CI](https://img.shields.io/github/actions/workflow/status/Casper-Olsen/invporis/rust.yml?label=CI)
 
 > Work in progress — early development stage
 
