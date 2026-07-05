@@ -11,16 +11,16 @@ use crate::data::trade_store;
 use crate::domain::trade::Trade;
 
 fn main() {
-    if let Err(data_error) = execute() {
+    let command = RootCommand::parse();
+
+    if let Err(data_error) = execute(command) {
         eprintln!("{data_error}");
         std::process::exit(1);
     }
 }
 
-fn execute() -> Result<(), DataError> {
-    let cli = RootCommand::parse();
-
-    match cli.command {
+fn execute(root_command: RootCommand) -> Result<(), DataError> {
+    match root_command.command {
         Commands::Add(args) => {
             println!(
                 "Adding trade with event: {}",
@@ -41,5 +41,25 @@ fn execute() -> Result<(), DataError> {
             println!("Getting total value ...");
             Ok(())
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        cli::command::{AddArgs, Commands, RootCommand},
+        execute,
+    };
+
+    #[test]
+    fn test_add_trade() {
+        let root_command = RootCommand {
+            command: Commands::Add(AddArgs {
+                event: crate::cli::command::Event::Buy,
+                symbol: "test".to_string(),
+            }),
+        };
+        let res = execute(root_command);
+        assert!(res.is_ok());
     }
 }
