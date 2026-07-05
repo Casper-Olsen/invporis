@@ -1,6 +1,18 @@
-use clap::{Args, Parser, Subcommand};
+use clap::{Args, Parser, Subcommand, ValueEnum};
 
-use crate::domain::event::Event;
+#[derive(ValueEnum, Clone, Debug)]
+pub enum Event {
+    Buy,
+}
+
+impl std::fmt::Display for Event {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = match self {
+            Self::Buy => "buy",
+        };
+        write!(f, "{s}")
+    }
+}
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]

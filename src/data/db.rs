@@ -3,7 +3,7 @@ use rusqlite::{Connection, Result, params};
 use std::{fs, path::PathBuf};
 use thiserror::Error;
 
-use crate::domain::trade::Trade;
+use crate::cli;
 
 #[derive(Debug, Error)]
 pub enum DataError {
@@ -15,6 +15,35 @@ pub enum DataError {
 
     #[error("SQLite error: {0}")]
     Sqlite(#[from] rusqlite::Error),
+}
+
+#[derive(Clone, Debug)]
+pub enum Event {
+    Buy,
+}
+
+impl rusqlite::ToSql for Event {
+    fn to_sql(&self) -> Result<rusqlite::types::ToSqlOutput<'_>> {
+        let e = match self {
+            Self::Buy => "buy",
+        };
+
+        Ok(rusqlite::types::ToSqlOutput::from(e))
+    }
+}
+
+impl From<cli::command::Event> for Event {
+    fn from(item: cli::command::Event) -> Self {
+        match item {
+            cli::command::Event::Buy => Self::Buy,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct Trade {
+    pub event: Event,
+    pub symbol: String,
 }
 
 pub struct Db {
@@ -29,9 +58,9 @@ impl Db {
         let db_path = data_dir.join("invporis.db");
 
         // If a database does not exist at the path, one is created.
-        let conn = Connection::open(&db_path)?;
+        let connection = Connection::open(&db_path)?;
 
-        conn.execute(
+        connection.execute(
             "CREATE TABLE IF NOT EXISTS trades (
              id INTEGER PRIMARY KEY,
              event TEXT NOT NULL,
@@ -40,13 +69,13 @@ impl Db {
             (),
         )?;
 
-        Ok(Self { connection: conn })
+        Ok(Self { connection })
     }
 
     pub fn insert_trade(&self, trade: &Trade) -> Result<(), DataError> {
         self.connection.execute(
             "insert into trades (event, symbol) values (?1, ?2)",
-            params![trade.event.to_string(), trade.symbol],
+            params![trade.event, trade.symbol],
         )?;
 
         Ok(())
