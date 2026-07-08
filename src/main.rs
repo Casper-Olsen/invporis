@@ -1,52 +1,25 @@
 mod cli;
+mod command;
 mod data;
 mod domain;
+mod error;
 
 use clap::Parser;
-use colored::Colorize;
 
-use crate::cli::command::{Commands, RootCommand};
-use crate::data::db::{DataError, Db};
-use crate::data::trade_store;
-use crate::domain::trade::Trade;
+use crate::cli::command::RootCommand;
+use crate::error::AppError;
 
 fn main() {
     let command = RootCommand::parse();
 
-    if let Err(data_error) = execute(command) {
-        eprintln!("{data_error}");
+    if let Err(error) = execute(command) {
+        eprintln!("{error}");
         std::process::exit(1);
     }
 }
 
-fn execute(root_command: RootCommand) -> Result<(), DataError> {
-    match root_command.command {
-        Commands::Add(args) => {
-            println!(
-                "Adding trade with event: {}",
-                args.event.to_string().green()
-            );
-
-            let trade = Trade {
-                event: domain::trade::Event::from(args.event),
-                symbol: args.symbol,
-                quantity: args.quantity,
-                price: args.price,
-                executed_at: args.executed_at,
-                currency: args.currency,
-                fee: args.fee,
-            };
-
-            let db = Db::open()?;
-            trade_store::insert_trade(&db, &trade)?;
-
-            Ok(())
-        }
-        Commands::GetTotalValue => {
-            println!("Getting total value ...");
-            Ok(())
-        }
-    }
+fn execute(root_command: RootCommand) -> Result<(), AppError> {
+    command::execute(root_command)
 }
 
 #[cfg(test)]

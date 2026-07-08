@@ -1,11 +1,8 @@
 use rusqlite::params;
 
-use crate::{
-    data::db::{DataError, Db},
-    domain::trade::Trade,
-};
+use crate::{data::db::Db, domain::trade::Trade, error::AppError};
 
-pub fn insert_trade(db: &Db, trade: &Trade) -> Result<(), DataError> {
+pub fn insert_trade(db: &Db, trade: &Trade) -> Result<(), AppError> {
     db.connection.execute(
         "insert into trades (event, symbol, quantity, price, executed_at, currency, fee)
          values (?1, ?2, ?3, ?4, ?5, ?6, ?7)",

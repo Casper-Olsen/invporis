@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use chrono::{DateTime, Utc};
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use rust_decimal::{Decimal, dec};
@@ -36,6 +38,10 @@ pub enum Commands {
     /// Get total value of portfolio
     #[command(about = "Get total value of portfolio")]
     GetTotalValue,
+
+    /// Import trades
+    #[command(about = "Import trades")]
+    Import(ImportArgs),
 }
 
 #[derive(Args)]
@@ -60,4 +66,10 @@ pub struct AddArgs {
 
     #[arg(long, required = false, default_value = "USD")]
     pub currency: String,
+}
+
+#[derive(Args)]
+pub struct ImportArgs {
+    #[arg(long, short = 'p', required = true)]
+    pub path: PathBuf,
 }
