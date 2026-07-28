@@ -5,6 +5,9 @@ pub enum AppError {
     #[error("Path error")]
     Path(&'static str),
 
+    #[error("Import error")]
+    ImportError(&'static str),
+
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
 

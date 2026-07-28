@@ -10,6 +10,8 @@ use crate::cli::command::RootCommand;
 use crate::error::AppError;
 
 fn main() {
+    env_logger::init();
+
     let command = RootCommand::parse();
 
     if let Err(error) = execute(command) {
