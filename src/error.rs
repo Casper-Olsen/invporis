@@ -2,11 +2,11 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum AppError {
-    #[error("Path error")]
-    Path(&'static str),
+    #[error("Path error: {0}")]
+    Path(String),
 
-    #[error("Import error")]
-    ImportError(&'static str),
+    #[error("Import error: {0}")]
+    ImportError(String),
 
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),

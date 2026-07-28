@@ -10,6 +10,12 @@ pub enum Event {
     Sell,
 }
 
+#[derive(ValueEnum, Clone, Debug)]
+pub enum Provider {
+    Nordnet,
+    Saxo,
+}
+
 impl std::fmt::Display for Event {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let s = match self {
@@ -70,6 +76,9 @@ pub struct AddArgs {
 
 #[derive(Args)]
 pub struct ImportArgs {
+    #[arg(long, short = 'f', required = true)]
+    pub file: PathBuf,
+
     #[arg(long, short = 'p', required = true)]
-    pub path: PathBuf,
+    pub provider: Provider,
 }
