@@ -28,8 +28,8 @@ fn import_nordnet(file: PathBuf) -> Result<(), AppError> {
         ));
     }
 
-    debug!("decoded {} bytes", bytes.len());
-    debug!("decoded using {}", encoding_used.name());
+    debug!("Decoded {} bytes", bytes.len());
+    debug!("Decoded using {}", encoding_used.name());
 
     let mut reader = ReaderBuilder::new()
         .delimiter(b';')
@@ -47,7 +47,14 @@ fn import_saxo(file: PathBuf) -> Result<(), AppError> {
 
     let mut workbook: Xlsx<_> = open_workbook(file)?;
 
-    if let Ok(range) = workbook.worksheet_range("Trades") {
+    let names = workbook.sheet_names();
+    let Some(sheet_name) = names.first() else {
+        return Err(AppError::Import("No sheet in the file".to_string()));
+    };
+
+    debug!("Using \"{sheet_name}\" sheet");
+
+    if let Ok(range) = workbook.worksheet_range(sheet_name) {
         for l in range.rows() {
             println!("{l:?}");
         }
