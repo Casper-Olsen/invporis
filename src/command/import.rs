@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use calamine::{Reader, Xlsx, open_workbook};
 use csv::ReaderBuilder;
 use encoding_rs::UTF_16LE;
 use log::debug;
@@ -21,7 +22,7 @@ fn import_nordnet(file: PathBuf) -> Result<(), AppError> {
     let (content, encoding_used, has_errors) = UTF_16LE.decode(&bytes);
 
     if has_errors {
-        return Err(AppError::ImportError(
+        return Err(AppError::Import(
             "File contains invalid UTF-16LE text".to_string(),
         ));
     }
@@ -40,8 +41,14 @@ fn import_nordnet(file: PathBuf) -> Result<(), AppError> {
     Ok(())
 }
 
-fn import_saxo(_: PathBuf) -> Result<(), AppError> {
-    Err(AppError::ImportError(
-        "Provider not implemented yet".to_string(),
-    ))
+fn import_saxo(file: PathBuf) -> Result<(), AppError> {
+    let mut workbook: Xlsx<_> = open_workbook(file)?;
+
+    if let Ok(range) = workbook.worksheet_range("Trades") {
+        for l in range.rows() {
+            println!("{l:?}");
+        }
+    }
+
+    Ok(())
 }
