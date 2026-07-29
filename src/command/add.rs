@@ -7,7 +7,7 @@ use crate::{
     error::AppError,
 };
 
-pub fn create_trade(args: AddArgs) -> Result<(), AppError> {
+pub fn run(args: AddArgs, db: &Db) -> Result<(), AppError> {
     println!(
         "Adding trade with event: {}",
         args.event.to_string().green()
@@ -15,7 +15,7 @@ pub fn create_trade(args: AddArgs) -> Result<(), AppError> {
 
     let trade = Trade {
         event: crate::domain::trade::Event::from(args.event),
-        symbol: args.symbol,
+        isin: args.isin,
         quantity: args.quantity,
         price: args.price,
         executed_at: args.executed_at,
@@ -23,8 +23,7 @@ pub fn create_trade(args: AddArgs) -> Result<(), AppError> {
         fee: args.fee,
     };
 
-    let db = Db::open()?;
-    trade_store::insert_trade(&db, &trade)?;
+    trade_store::insert_trade(db, &trade)?;
 
     Ok(())
 }

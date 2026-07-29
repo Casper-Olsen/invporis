@@ -4,16 +4,16 @@ pub mod import;
 
 use crate::{
     cli::command::{Commands, RootCommand},
+    data::db::{Db, DbLocation},
     error::AppError,
 };
 
-pub fn execute(root_command: RootCommand) -> Result<(), AppError> {
+pub fn execute(root_command: RootCommand, db_location: &DbLocation) -> Result<(), AppError> {
+    let mut db = Db::open(db_location)?;
+
     match root_command.command {
-        Commands::Add(args) => add::create_trade(args),
-        Commands::Import(args) => import::import_trades(args),
-        Commands::GetTotalValue => {
-            get_total_value::calculate();
-            Ok(())
-        }
+        Commands::Add(args) => add::run(args, &db),
+        Commands::Import(args) => import::run(args, &mut db),
+        Commands::GetTotalValue => get_total_value::run(),
     }
 }

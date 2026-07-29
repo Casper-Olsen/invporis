@@ -55,8 +55,8 @@ pub struct AddArgs {
     #[arg(long, short = 'e', required = true)]
     pub event: Event,
 
-    #[arg(long, short = 's', required = true)]
-    pub symbol: String,
+    #[arg(long, short = 'i', required = true)]
+    pub isin: String,
 
     #[arg(long, short = 'q', required = false, default_value_t = dec!(1))]
     pub quantity: Decimal,

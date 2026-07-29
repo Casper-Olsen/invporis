@@ -7,6 +7,7 @@ mod error;
 use clap::Parser;
 
 use crate::cli::command::RootCommand;
+use crate::data::db::DbLocation;
 use crate::error::AppError;
 
 fn main() {
@@ -14,14 +15,14 @@ fn main() {
 
     let command = RootCommand::parse();
 
-    if let Err(error) = execute(command) {
+    if let Err(error) = execute(command, &DbLocation::Persisted) {
         eprintln!("{error}");
         std::process::exit(1);
     }
 }
 
-fn execute(root_command: RootCommand) -> Result<(), AppError> {
-    command::execute(root_command)
+fn execute(root_command: RootCommand, db_location: &DbLocation) -> Result<(), AppError> {
+    command::execute(root_command, db_location)
 }
 
 #[cfg(test)]
@@ -31,6 +32,7 @@ mod tests {
 
     use crate::{
         cli::command::{AddArgs, Commands, RootCommand},
+        data::db::DbLocation,
         execute,
     };
 
@@ -39,7 +41,7 @@ mod tests {
         let root_command = RootCommand {
             command: Commands::Add(AddArgs {
                 event: crate::cli::command::Event::Buy,
-                symbol: "test".to_string(),
+                isin: "test".to_string(),
                 quantity: dec!(33),
                 price: dec!(100),
                 executed_at: Local::now().to_utc(),
@@ -47,7 +49,7 @@ mod tests {
                 fee: dec!(0),
             }),
         };
-        let res = execute(root_command);
+        let res = execute(root_command, &DbLocation::InMemory);
         println!("{res:?}");
         assert!(res.is_ok());
     }
