@@ -1,4 +1,5 @@
 allowed-duplicate-crates = [
     "hashbrown",
-    "syn"
+    "syn",
+    "bitflags"
 ]
