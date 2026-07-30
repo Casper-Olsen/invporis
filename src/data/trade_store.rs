@@ -1,6 +1,12 @@
+use std::collections::HashSet;
+
 use rusqlite::params;
 
-use crate::{data::db::Db, domain::trade::Trade, error::AppError};
+use crate::{
+    data::db::Db,
+    domain::trade::{Provider, Trade},
+    error::AppError,
+};
 
 const INSERT_SQL: &str =
     "insert into trades (event, isin, quantity, price, executed_at, currency, fee, provider, provider_id)
@@ -28,7 +34,7 @@ pub fn insert_trade(db: &Db, trade: &Trade) -> Result<(), AppError> {
     Ok(())
 }
 
-pub fn insert_trades(db: &mut Db, trades: Vec<Trade>) -> Result<(), AppError> {
+pub fn insert_trades(db: &mut Db, trades: &Vec<Trade>) -> Result<(), AppError> {
     let transaction = db.connection.transaction()?;
     {
         let mut statement = transaction.prepare(INSERT_SQL)?;
@@ -53,4 +59,17 @@ pub fn insert_trades(db: &mut Db, trades: Vec<Trade>) -> Result<(), AppError> {
     transaction.commit()?;
 
     Ok(())
+}
+
+pub fn list_trades(db: &Db, provider: &Provider) -> Result<HashSet<String>, AppError> {
+    let mut statement = db
+        .connection
+        .prepare("SELECT provider_id FROM trades WHERE provider = ?1")?;
+
+    let trade_iter =
+        statement.query_map(params![provider.as_str()], |row| row.get::<_, String>(0))?;
+
+    trade_iter
+        .map(|trade| trade.map_err(AppError::from))
+        .collect()
 }

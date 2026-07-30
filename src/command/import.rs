@@ -11,9 +11,9 @@ use std::{
 };
 
 use crate::{
-    cli::command::{ImportArgs, Provider},
+    cli::command::{ImportArgs, Provider as CliProvider},
     data::{db::Db, trade_store},
-    domain::trade::Trade,
+    domain::trade::{Provider as DomainProvder, Trade},
     error::AppError,
 };
 
@@ -72,8 +72,8 @@ pub enum NordnetEvent {
 
 pub fn run(args: ImportArgs, db: &mut Db) -> Result<(), AppError> {
     match args.provider {
-        Provider::Nordnet => import_nordnet(args.file, db),
-        Provider::Saxo => import_saxo(args.file),
+        CliProvider::Nordnet => import_nordnet(args.file, db),
+        CliProvider::Saxo => import_saxo(args.file),
     }
 }
 
@@ -102,14 +102,28 @@ fn import_nordnet(file: PathBuf, db: &mut Db) -> Result<(), AppError> {
     let csv_headers = reader.headers()?.clone();
     let headers = into_nordnet_headers(&csv_headers);
 
+    let nordnet_trades = trade_store::list_trades(db, &DomainProvder::Nordnet)?;
+
     let mut trades = Vec::new();
+    let mut processed = 0;
     for result in reader.records() {
         let record = result?;
         let trade = record.deserialize::<NordnetTrade>(Some(&headers))?;
-        trades.push(Trade::from(trade));
+
+        processed += 1;
+
+        if !nordnet_trades.contains(&trade.id) {
+            trades.push(Trade::from(trade));
+        }
     }
 
-    trade_store::insert_trades(db, trades)?;
+    trade_store::insert_trades(db, &trades)?;
+
+    debug!(
+        "Processed {} trades, imported {} new trades",
+        processed,
+        trades.len()
+    );
 
     Ok(())
 }
