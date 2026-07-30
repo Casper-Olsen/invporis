@@ -45,17 +45,20 @@ pub struct NordnetTrade {
     #[serde(rename = "Kurs", deserialize_with = "deserialize_comma_decimal")]
     pub price: Decimal,
 
-    #[serde(rename = "Handelsdag")]
-    pub executed_at: NaiveDate,
-
-    #[serde(rename = "Beløb valuta")]
-    pub currency: String,
+    #[serde(rename = "Indkøbsværdi valuta")]
+    pub price_currency: String,
 
     #[serde(
         rename = "Samlede afgifter",
         deserialize_with = "deserialize_comma_decimal"
     )]
     pub fee: Decimal,
+
+    #[serde(rename = "Samlede afgifter valuta")]
+    pub fee_currency: String,
+
+    #[serde(rename = "Handelsdag")]
+    pub executed_at: NaiveDate,
 
     #[serde(rename = "Id")]
     pub id: String,

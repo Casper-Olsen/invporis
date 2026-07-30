@@ -55,15 +55,20 @@ impl Provider {
     }
 }
 
+#[derive(Clone, Debug)]
+pub struct Money {
+    pub amount: Decimal,
+    pub currency: String,
+}
+
 #[derive(Debug)]
 pub struct Trade {
     pub event: Event,
     pub isin: String,
     pub quantity: Decimal,
-    pub price: Decimal,
+    pub price: Money,
+    pub fee: Money,
     pub executed_at: DateTime<Utc>,
-    pub currency: String,
-    pub fee: Decimal,
     pub provider: Option<Provider>,
     pub provider_id: Option<String>,
 }
@@ -80,10 +85,15 @@ impl From<NordnetTrade> for Trade {
             event: nordnet_trade.event.into(),
             isin: nordnet_trade.isin,
             quantity: nordnet_trade.quantity,
-            price: nordnet_trade.price,
+            price: Money {
+                amount: nordnet_trade.price,
+                currency: nordnet_trade.price_currency,
+            },
+            fee: Money {
+                amount: nordnet_trade.fee,
+                currency: nordnet_trade.fee_currency,
+            },
             executed_at: datetime_utc,
-            currency: nordnet_trade.currency,
-            fee: nordnet_trade.fee,
             provider: Some(Provider::Nordnet),
             provider_id: Some(nordnet_trade.id),
         }

@@ -38,15 +38,17 @@ mod tests {
 
     #[test]
     fn test_add_trade() {
+        let dkk = "DKK".to_string();
         let root_command = RootCommand {
             command: Commands::Add(AddArgs {
                 event: crate::cli::command::Event::Buy,
                 isin: "test".to_string(),
                 quantity: dec!(33),
                 price: dec!(100),
-                executed_at: Local::now().to_utc(),
-                currency: "USD".to_string(),
+                price_currency: dkk.clone(),
+                fee_currency: dkk,
                 fee: dec!(0),
+                executed_at: Local::now().to_utc(),
             }),
         };
         let res = execute(root_command, &DbLocation::InMemory);

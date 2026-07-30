@@ -64,14 +64,17 @@ pub struct AddArgs {
     #[arg(long, short = 'p', required = true)]
     pub price: Decimal,
 
-    #[arg(long, short = 't', required = true)]
-    pub executed_at: DateTime<Utc>,
+    #[arg(long, required = false, default_value = "DKK")]
+    pub price_currency: String,
 
     #[arg(long, short = 'f', required = false, default_value_t = dec!(0))]
     pub fee: Decimal,
 
-    #[arg(long, required = false, default_value = "USD")]
-    pub currency: String,
+    #[arg(long, required = false, default_value = "DKK")]
+    pub fee_currency: String,
+
+    #[arg(long, short = 't', required = true)]
+    pub executed_at: DateTime<Utc>,
 }
 
 #[derive(Args)]

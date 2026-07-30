@@ -38,9 +38,10 @@ impl Db {
              isin TEXT NULL,
              quantity TEXT NOT NULL,
              price TEXT NOT NULL,
-             executed_at INTEGER NOT NULL,
-             currency TEXT NOT NULL DEFAULT 'USD',
+             price_currency TEXT NOT NULL,
              fee TEXT NOT NULL DEFAULT '0',
+             fee_currency TEXT NOT NULL,
+             executed_at INTEGER NOT NULL,
              provider TEXT NULL,
              provider_id TEXT NULL);
          ",
