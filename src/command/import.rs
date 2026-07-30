@@ -13,7 +13,7 @@ use std::{
 use crate::{
     cli::command::{ImportArgs, Provider as CliProvider},
     data::{db::Db, trade_store},
-    domain::trade::{Provider as DomainProvder, Trade},
+    domain::trade::{Provider as DomainProvider, Trade},
     error::AppError,
 };
 
@@ -105,7 +105,7 @@ fn import_nordnet(file: PathBuf, db: &mut Db) -> Result<(), AppError> {
     let csv_headers = reader.headers()?.clone();
     let headers = into_nordnet_headers(&csv_headers);
 
-    let nordnet_trades = trade_store::list_trades(db, &DomainProvder::Nordnet)?;
+    let nordnet_trades = trade_store::list_trades(db, &DomainProvider::Nordnet)?;
 
     let mut trades = Vec::new();
     let mut processed = 0;
