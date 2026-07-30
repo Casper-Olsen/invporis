@@ -13,7 +13,7 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  test-and-build:
+  build-and-test:
     runs-on: ubuntu-latest
     timeout-minutes: 15 
 
@@ -33,7 +33,10 @@ jobs:
         uses: taiki-e/install-action@nextest
 
       - name: Run Clippy
-        run: cargo clippy -- -D warnings
+        run: cargo clippy --all-targets --all-features -- -D warnings
+
+      - name: Build
+        run: cargo build --all-targets
 
       - name: Run tests 
         run: cargo nextest run --profile ci
