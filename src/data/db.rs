@@ -4,6 +4,7 @@ use std::{fs, path::PathBuf};
 
 use crate::error::AppError;
 
+#[derive(Clone, Copy)]
 pub enum DbLocation {
     Persisted,
     #[cfg(test)]
@@ -16,7 +17,7 @@ pub struct Db {
 
 impl Db {
     // TODO: Split into getting connection and migration
-    pub fn open(location: &DbLocation) -> Result<Self, AppError> {
+    pub fn open(location: DbLocation) -> Result<Self, AppError> {
         let connection = match location {
             DbLocation::Persisted => {
                 let data_dir = get_data_directory()?;

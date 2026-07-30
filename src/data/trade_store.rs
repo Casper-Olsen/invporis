@@ -24,10 +24,7 @@ pub fn insert_trade(db: &Db, trade: &Trade) -> Result<(), AppError> {
             trade.fee.amount.to_string(),
             trade.fee.currency.clone(),
             trade.executed_at,
-            trade
-                .provider
-                .as_ref()
-                .map(crate::domain::trade::Provider::as_str),
+            trade.provider.map(crate::domain::trade::Provider::as_str),
             trade.provider_id
         ],
     )?;
@@ -50,10 +47,7 @@ pub fn insert_trades(db: &mut Db, trades: &Vec<Trade>) -> Result<(), AppError> {
                 trade.fee.amount.to_string(),
                 trade.fee.currency.clone(),
                 trade.executed_at,
-                trade
-                    .provider
-                    .as_ref()
-                    .map(crate::domain::trade::Provider::as_str),
+                trade.provider.map(crate::domain::trade::Provider::as_str),
                 trade.provider_id
             ])?;
         }
@@ -63,7 +57,7 @@ pub fn insert_trades(db: &mut Db, trades: &Vec<Trade>) -> Result<(), AppError> {
     Ok(())
 }
 
-pub fn list_trades(db: &Db, provider: &Provider) -> Result<HashSet<String>, AppError> {
+pub fn list_trades(db: &Db, provider: Provider) -> Result<HashSet<String>, AppError> {
     let mut statement = db
         .connection
         .prepare("SELECT provider_id FROM trades WHERE provider = ?1")?;

@@ -8,7 +8,7 @@ use crate::{
     error::AppError,
 };
 
-pub fn execute(root_command: RootCommand, db_location: &DbLocation) -> Result<(), AppError> {
+pub fn execute(root_command: RootCommand, db_location: DbLocation) -> Result<(), AppError> {
     let mut db = Db::open(db_location)?;
 
     match root_command.command {

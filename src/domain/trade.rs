@@ -6,14 +6,14 @@ use crate::{
     command::import::{NordnetEvent, NordnetTrade},
 };
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub enum Event {
     Buy,
     Sell,
 }
 
 impl Event {
-    pub const fn as_str(&self) -> &'static str {
+    pub const fn as_str(self) -> &'static str {
         match self {
             Self::Buy => "buy",
             Self::Sell => "sell",
@@ -39,7 +39,7 @@ impl From<NordnetEvent> for Event {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub enum Provider {
     Nordnet,
     #[allow(dead_code)]
@@ -47,7 +47,7 @@ pub enum Provider {
 }
 
 impl Provider {
-    pub const fn as_str(&self) -> &'static str {
+    pub const fn as_str(self) -> &'static str {
         match self {
             Self::Nordnet => "nordnet",
             Self::Saxo => "saxo",

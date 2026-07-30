@@ -15,13 +15,13 @@ fn main() {
 
     let command = RootCommand::parse();
 
-    if let Err(error) = execute(command, &DbLocation::Persisted) {
+    if let Err(error) = execute(command, DbLocation::Persisted) {
         eprintln!("{error}");
         std::process::exit(1);
     }
 }
 
-fn execute(root_command: RootCommand, db_location: &DbLocation) -> Result<(), AppError> {
+fn execute(root_command: RootCommand, db_location: DbLocation) -> Result<(), AppError> {
     command::execute(root_command, db_location)
 }
 
@@ -51,7 +51,7 @@ mod tests {
                 executed_at: Local::now().to_utc(),
             }),
         };
-        let res = execute(root_command, &DbLocation::InMemory);
+        let res = execute(root_command, DbLocation::InMemory);
         println!("{res:?}");
         assert!(res.is_ok());
     }
