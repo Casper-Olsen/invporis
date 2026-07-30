@@ -39,6 +39,22 @@ impl From<NordnetEvent> for Event {
     }
 }
 
+#[derive(Clone, Debug)]
+pub enum Provider {
+    Nordnet,
+    #[allow(dead_code)]
+    Saxo,
+}
+
+impl Provider {
+    pub const fn as_str(&self) -> &'static str {
+        match self {
+            Self::Nordnet => "nordnet",
+            Self::Saxo => "saxo",
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct Trade {
     pub event: Event,
@@ -48,6 +64,8 @@ pub struct Trade {
     pub executed_at: DateTime<Utc>,
     pub currency: String,
     pub fee: Decimal,
+    pub provider: Option<Provider>,
+    pub provider_id: Option<String>,
 }
 
 impl From<NordnetTrade> for Trade {
@@ -66,6 +84,8 @@ impl From<NordnetTrade> for Trade {
             executed_at: datetime_utc,
             currency: nordnet_trade.currency,
             fee: nordnet_trade.fee,
+            provider: Some(Provider::Nordnet),
+            provider_id: Some(nordnet_trade.id),
         }
     }
 }

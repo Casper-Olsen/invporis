@@ -56,6 +56,9 @@ pub struct NordnetTrade {
         deserialize_with = "deserialize_comma_decimal"
     )]
     pub fee: Decimal,
+
+    #[serde(rename = "Id")]
+    pub id: String,
 }
 
 #[derive(Clone, Debug, serde::Deserialize)]

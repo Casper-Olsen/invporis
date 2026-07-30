@@ -21,6 +21,8 @@ pub fn run(args: AddArgs, db: &Db) -> Result<(), AppError> {
         executed_at: args.executed_at,
         currency: args.currency,
         fee: args.fee,
+        provider: None,
+        provider_id: None,
     };
 
     trade_store::insert_trade(db, &trade)?;

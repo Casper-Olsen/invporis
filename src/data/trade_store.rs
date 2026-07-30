@@ -3,8 +3,8 @@ use rusqlite::params;
 use crate::{data::db::Db, domain::trade::Trade, error::AppError};
 
 const INSERT_SQL: &str =
-    "insert into trades (event, isin, quantity, price, executed_at, currency, fee)
-     values (?1, ?2, ?3, ?4, ?5, ?6, ?7)";
+    "insert into trades (event, isin, quantity, price, executed_at, currency, fee, provider, provider_id)
+     values (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)";
 
 pub fn insert_trade(db: &Db, trade: &Trade) -> Result<(), AppError> {
     db.connection.execute(
@@ -16,7 +16,12 @@ pub fn insert_trade(db: &Db, trade: &Trade) -> Result<(), AppError> {
             trade.price.to_string(),
             trade.executed_at,
             trade.currency,
-            trade.fee.to_string()
+            trade.fee.to_string(),
+            trade
+                .provider
+                .as_ref()
+                .map(crate::domain::trade::Provider::as_str),
+            trade.provider_id
         ],
     )?;
 
@@ -36,7 +41,12 @@ pub fn insert_trades(db: &mut Db, trades: Vec<Trade>) -> Result<(), AppError> {
                 trade.price.to_string(),
                 trade.executed_at,
                 trade.currency,
-                trade.fee.to_string()
+                trade.fee.to_string(),
+                trade
+                    .provider
+                    .as_ref()
+                    .map(crate::domain::trade::Provider::as_str),
+                trade.provider_id
             ])?;
         }
     }
