@@ -16,7 +16,6 @@ pub struct Db {
 }
 
 impl Db {
-    // TODO: Split into getting connection and migration
     pub fn open(location: DbLocation) -> Result<Self, AppError> {
         let connection = match location {
             DbLocation::Persisted => {
@@ -31,23 +30,6 @@ impl Db {
             #[cfg(test)]
             DbLocation::InMemory => Connection::open_in_memory()?,
         };
-
-        connection.execute(
-            "CREATE TABLE IF NOT EXISTS trades (
-             id INTEGER PRIMARY KEY,
-             event TEXT NOT NULL,
-             isin TEXT NULL,
-             quantity TEXT NOT NULL,
-             price TEXT NOT NULL,
-             price_currency TEXT NOT NULL,
-             fee TEXT NOT NULL DEFAULT '0',
-             fee_currency TEXT NOT NULL,
-             executed_at INTEGER NOT NULL,
-             provider TEXT NULL,
-             provider_id TEXT NULL);
-         ",
-            (),
-        )?;
 
         Ok(Self { connection })
     }
