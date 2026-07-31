@@ -1,3 +1,5 @@
+use std::hash::Hash;
+
 use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 
@@ -72,6 +74,29 @@ pub struct Trade {
     pub provider: Option<Provider>,
     pub provider_id: Option<String>,
 }
+
+#[derive(Debug)]
+pub struct Security {
+    pub isin: String,
+    pub ticker: Option<String>,
+    pub name: Option<String>,
+    pub currency: String,
+}
+
+impl PartialEq for Security {
+    fn eq(&self, other: &Self) -> bool {
+        self.isin == other.isin && self.currency == other.currency
+    }
+}
+
+impl Hash for Security {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.isin.hash(state);
+        self.currency.hash(state);
+    }
+}
+
+impl Eq for Security {}
 
 impl From<NordnetTrade> for Trade {
     fn from(nordnet_trade: NordnetTrade) -> Self {

@@ -6,14 +6,15 @@ use log::debug;
 use rust_decimal::Decimal;
 use serde::Deserialize;
 use std::{
+    collections::HashSet,
     path::{Path, PathBuf},
     str::FromStr,
 };
 
 use crate::{
     cli::command::{ImportArgs, Provider as CliProvider},
-    data::{db::Db, trade_store},
-    domain::trade::{Provider as DomainProvider, Trade},
+    data::{db::Db, security_store, trade_store},
+    domain::trade::{Provider as DomainProvider, Security, Trade},
     error::AppError,
 };
 
@@ -35,6 +36,9 @@ pub struct NordnetTrade {
 
     #[serde(rename = "ISIN")]
     pub isin: String,
+
+    #[serde(rename = "Værdipapirer")]
+    pub security_name: String,
 
     #[serde(
         rename = "Totalt antal",
@@ -106,8 +110,11 @@ fn import_nordnet(file: PathBuf, db: &mut Db) -> Result<(), AppError> {
     let headers = into_nordnet_headers(&csv_headers);
 
     let nordnet_trades = trade_store::list_trades(db, DomainProvider::Nordnet)?;
+    let existing_securities = security_store::list_keys(db)?;
 
-    let mut trades = Vec::new();
+    let mut securities_to_insert = HashSet::<Security>::new();
+    let mut trades_to_insert = Vec::new();
+
     let mut processed = 0;
     for result in reader.records() {
         let record = result?;
@@ -115,18 +122,33 @@ fn import_nordnet(file: PathBuf, db: &mut Db) -> Result<(), AppError> {
 
         processed += 1;
 
-        if !nordnet_trades.contains(&trade.id) {
-            trades.push(Trade::from(trade));
+        if nordnet_trades.contains(&trade.id) {
+            continue;
         }
+
+        let security_key = (trade.isin.clone(), trade.price_currency.clone());
+
+        if !existing_securities.contains(&security_key) {
+            securities_to_insert.insert(Security {
+                isin: trade.isin.clone(),
+                currency: trade.price_currency.clone(),
+                ticker: None,
+                name: Some(trade.security_name.clone()),
+            });
+        }
+
+        trades_to_insert.push(Trade::from(trade));
     }
 
-    trade_store::insert_trades(db, &trades)?;
+    security_store::insert_securities(db, &securities_to_insert)?;
+    trade_store::insert_trades(db, &trades_to_insert)?;
 
     debug!(
         "Processed {} trades, imported {} new trades",
         processed,
-        trades.len()
+        trades_to_insert.len()
     );
+    debug!("Imported {} new securities", securities_to_insert.len());
 
     Ok(())
 }

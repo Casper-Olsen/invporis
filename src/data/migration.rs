@@ -22,7 +22,16 @@ const MIGRATIONS_SLICE: &[M<'_>] = &[
              provider_id TEXT NULL);
          ",
     ),
-    // In the future, add more migrations here:
+    M::up(
+        "CREATE TABLE securities (
+             id INTEGER PRIMARY KEY,
+             isin TEXT NOT NULL,
+             currency TEXT NOT NULL,
+             ticker TEXT NULL,
+             name TEXT NULL,
+             UNIQUE(isin, currency));
+         ",
+    ),
 ];
 
 const MIGRATIONS: Migrations<'_> = Migrations::from_slice(MIGRATIONS_SLICE);
