@@ -3,7 +3,7 @@ use colored::Colorize;
 use crate::{
     cli::command::AddArgs,
     data::{db::Db, trade_store},
-    domain::trade::{Money, Trade},
+    domain::trade::{MonetaryAmount, Trade},
     error::AppError,
 };
 
@@ -17,12 +17,12 @@ pub fn run(args: AddArgs, db: &Db) -> Result<(), AppError> {
         event: crate::domain::trade::Event::from(args.event),
         isin: args.isin,
         quantity: args.quantity,
-        price: Money {
+        price: MonetaryAmount {
             amount: args.price,
             currency: args.price_currency,
         },
         executed_at: args.executed_at,
-        fee: Money {
+        fee: MonetaryAmount {
             amount: args.fee,
             currency: args.fee_currency,
         },
