@@ -24,12 +24,10 @@ const MIGRATIONS_SLICE: &[M<'_>] = &[
     ),
     M::up(
         "CREATE TABLE securities (
-             id INTEGER PRIMARY KEY,
              isin TEXT NOT NULL,
              currency TEXT NOT NULL,
-             ticker TEXT NULL,
              name TEXT NULL,
-             UNIQUE(isin, currency));
+             PRIMARY KEY (isin, currency));
          ",
     ),
 ];

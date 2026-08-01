@@ -132,7 +132,6 @@ fn import_nordnet(file: PathBuf, db: &mut Db) -> Result<(), AppError> {
             securities_to_insert.insert(Security {
                 isin: trade.isin.clone(),
                 currency: trade.price_currency.clone(),
-                ticker: None,
                 name: Some(trade.security_name.clone()),
             });
         }

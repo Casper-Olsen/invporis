@@ -8,17 +8,12 @@ pub fn insert_securities(db: &mut Db, securities: &HashSet<Security>) -> Result<
     let transaction = db.connection.transaction()?;
     {
         let mut statement = transaction.prepare(
-            "insert into securities (isin, currency, ticker, name)
-             values (?1, ?2, ?3, ?4)",
+            "insert into securities (isin, currency, name)
+             values (?1, ?2, ?3)",
         )?;
 
         for security in securities {
-            statement.execute(params![
-                security.isin,
-                security.currency,
-                security.ticker,
-                security.name,
-            ])?;
+            statement.execute(params![security.isin, security.currency, security.name,])?;
         }
     }
     transaction.commit()?;

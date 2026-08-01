@@ -78,7 +78,6 @@ pub struct Trade {
 #[derive(Debug)]
 pub struct Security {
     pub isin: String,
-    pub ticker: Option<String>,
     pub name: Option<String>,
     pub currency: String,
 }
