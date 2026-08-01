@@ -5,7 +5,7 @@ use rust_decimal::Decimal;
 
 use crate::{
     cli,
-    command::import::{NordnetEvent, NordnetTrade},
+    command::import::{NordnetEvent, NordnetTrade, SaxoEvent, SaxoTrade},
 };
 
 #[derive(Clone, Copy, Debug)]
@@ -41,10 +41,18 @@ impl From<NordnetEvent> for Event {
     }
 }
 
+impl From<SaxoEvent> for Event {
+    fn from(item: SaxoEvent) -> Self {
+        match item {
+            SaxoEvent::Buy => Self::Buy,
+            SaxoEvent::Sell => Self::Sell,
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug)]
 pub enum Provider {
     Nordnet,
-    #[allow(dead_code)]
     Saxo,
 }
 
@@ -75,28 +83,6 @@ pub struct Trade {
     pub provider_id: Option<String>,
 }
 
-#[derive(Debug)]
-pub struct Security {
-    pub isin: String,
-    pub name: Option<String>,
-    pub currency: String,
-}
-
-impl PartialEq for Security {
-    fn eq(&self, other: &Self) -> bool {
-        self.isin == other.isin && self.currency == other.currency
-    }
-}
-
-impl Hash for Security {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.isin.hash(state);
-        self.currency.hash(state);
-    }
-}
-
-impl Eq for Security {}
-
 impl From<NordnetTrade> for Trade {
     fn from(nordnet_trade: NordnetTrade) -> Self {
         let datetime_utc = nordnet_trade
@@ -123,3 +109,52 @@ impl From<NordnetTrade> for Trade {
         }
     }
 }
+
+impl From<SaxoTrade> for Trade {
+    fn from(saxo_trade: SaxoTrade) -> Self {
+        let datetime_utc = saxo_trade
+            .executed_at
+            .and_hms_opt(0, 0, 0)
+            .expect("00:00:00 is always a valid time")
+            .and_utc();
+
+        Self {
+            event: saxo_trade.event.into(),
+            isin: saxo_trade.isin,
+            quantity: saxo_trade.quantity,
+            price: MonetaryAmount {
+                amount: saxo_trade.price,
+                currency: saxo_trade.price_currency,
+            },
+            fee: MonetaryAmount {
+                amount: saxo_trade.fee,
+                currency: saxo_trade.fee_currency,
+            },
+            executed_at: datetime_utc,
+            provider: Some(Provider::Saxo),
+            provider_id: Some(saxo_trade.id),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct Security {
+    pub isin: String,
+    pub name: Option<String>,
+    pub currency: String,
+}
+
+impl PartialEq for Security {
+    fn eq(&self, other: &Self) -> bool {
+        self.isin == other.isin && self.currency == other.currency
+    }
+}
+
+impl Hash for Security {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.isin.hash(state);
+        self.currency.hash(state);
+    }
+}
+
+impl Eq for Security {}

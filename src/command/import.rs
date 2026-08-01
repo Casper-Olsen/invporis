@@ -19,6 +19,7 @@ use crate::{
 };
 
 const VALUTA: &str = "valuta";
+const SAXO_SHEET_NAME: &str = "Trades";
 
 fn deserialize_comma_decimal<'de, D>(deserializer: D) -> Result<Decimal, D::Error>
 where
@@ -27,6 +28,45 @@ where
     let s = String::deserialize(deserializer)?;
     let sanitized = s.replace(',', ".");
     Decimal::from_str(&sanitized).map_err(serde::de::Error::custom)
+}
+
+fn deserialize_price<'de, D>(deserializer: D) -> Result<Decimal, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let s = String::deserialize(deserializer)?;
+
+    let Some(index) = s.find(' ') else {
+        return Err(serde::de::Error::custom(
+            "invalid price format; missing space separator",
+        ));
+    };
+
+    Decimal::from_str(&s[..index]).map_err(serde::de::Error::custom)
+}
+
+fn deserialize_event<'de, D>(deserializer: D) -> Result<SaxoEvent, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let s = String::deserialize(deserializer)?;
+
+    let Some(i) = s.find(' ') else {
+        return Err(serde::de::Error::custom(
+            "invalid event format; missing space separator",
+        ));
+    };
+
+    let event = &s[..i];
+    match event {
+        "Buy" => Ok(SaxoEvent::Buy),
+        "Sell" => Ok(SaxoEvent::Sell),
+        _ => Err(serde::de::Error::custom("invalid event type".to_string())),
+    }
+}
+
+fn default_saxo_fee_currency() -> String {
+    "DKK".to_string()
 }
 
 #[derive(serde::Deserialize)]
@@ -52,6 +92,7 @@ pub struct NordnetTrade {
     #[serde(rename = "Indkøbsværdi valuta")]
     pub price_currency: String,
 
+    // TODO: Store fee as negative
     #[serde(
         rename = "Samlede afgifter",
         deserialize_with = "deserialize_comma_decimal"
@@ -77,10 +118,52 @@ pub enum NordnetEvent {
     Sell,
 }
 
+#[derive(serde::Deserialize)]
+pub struct SaxoTrade {
+    #[serde(rename = "Event", deserialize_with = "deserialize_event")]
+    pub event: SaxoEvent,
+
+    #[serde(rename = "Instrument ISIN")]
+    pub isin: String,
+
+    #[serde(rename = "Instrument")]
+    pub security_name: String,
+
+    #[serde(rename = "Quantity")]
+    pub quantity: Decimal,
+
+    #[serde(rename = "Price", deserialize_with = "deserialize_price")]
+    pub price: Decimal,
+
+    #[serde(rename = "Instrument currency")]
+    pub price_currency: String,
+
+    #[serde(rename = "Total cost (DKK)")]
+    pub fee: Decimal,
+
+    #[serde(default = "default_saxo_fee_currency")]
+    pub fee_currency: String,
+
+    #[serde(rename = "Trade Date")]
+    pub executed_at: NaiveDate,
+
+    #[serde(rename = "Trade ID")]
+    pub id: String,
+}
+
+#[derive(Clone, Debug, serde::Deserialize)]
+pub enum SaxoEvent {
+    #[serde(rename = "Buy")]
+    Buy,
+
+    #[serde(rename = "Sell")]
+    Sell,
+}
+
 pub fn run(args: ImportArgs, db: &mut Db) -> Result<(), AppError> {
     match args.provider {
         CliProvider::Nordnet => import_nordnet(args.file, db),
-        CliProvider::Saxo => import_saxo(args.file),
+        CliProvider::Saxo => import_saxo(args.file, db),
     }
 }
 
@@ -101,9 +184,7 @@ fn import_nordnet(file: PathBuf, db: &mut Db) -> Result<(), AppError> {
 
     let mut reader = ReaderBuilder::new()
         .delimiter(b'\t')
-        .has_headers(true)
         .flexible(true)
-        .quote(b'"')
         .from_reader(content.as_bytes());
 
     let csv_headers = reader.headers()?.clone();
@@ -175,27 +256,68 @@ fn into_nordnet_headers(csv_headers: &StringRecord) -> StringRecord {
     headers
 }
 
-fn import_saxo(file: PathBuf) -> Result<(), AppError> {
+// TODO: Implement import
+// TODO: Refactor after implementing the whole import and make sure to reuse between Nordnet and Saxo imports
+fn import_saxo(file: PathBuf, db: &mut Db) -> Result<(), AppError> {
     ensure_extension(&file, "xlsx")?;
 
     let mut workbook: Xlsx<_> = open_workbook(file)?;
 
-    // TODO: Is the sheet name with buy/sell always called "Shares"?
-    let names = workbook.sheet_names();
-    let Some(sheet_name) = names.first() else {
-        return Err(AppError::Import("No sheet in the file".to_string()));
-    };
-
-    debug!("Using \"{sheet_name}\" sheet");
-
-    // TODO: Implement Saxo import
-    if let Ok(range) = workbook.worksheet_range(sheet_name) {
-        for l in range.rows() {
-            println!("{l:?}");
-        }
+    if !workbook.sheet_names().contains(&SAXO_SHEET_NAME.to_owned()) {
+        return Err(AppError::Import(format!(
+            "No {SAXO_SHEET_NAME} sheet in the file"
+        )));
     }
 
+    let mut buffer = vec![];
+    {
+        let mut csv_writer = csv::Writer::from_writer(&mut buffer);
+
+        let range = workbook.worksheet_range(SAXO_SHEET_NAME)?;
+        for row in range.rows() {
+            let record = row
+                .iter()
+                .map(data_to_string)
+                .collect::<Result<Vec<_>, AppError>>()?;
+
+            csv_writer.write_record(record)?;
+        }
+        csv_writer.flush()?;
+    }
+
+    let mut reader = ReaderBuilder::new()
+        .flexible(true)
+        .from_reader(buffer.as_slice());
+
+    let trades_to_insert = reader
+        .deserialize::<SaxoTrade>()
+        .map(|r| r.map(Trade::from).map_err(AppError::from))
+        .collect::<Result<Vec<_>, _>>()?;
+
+    trade_store::insert_trades(db, &trades_to_insert)?;
+
     Ok(())
+}
+
+fn data_to_string(data: &calamine::Data) -> Result<String, AppError> {
+    match data {
+        calamine::Data::Int(i) => Ok(i.to_string()),
+        calamine::Data::Float(f) => Ok(f.to_string()),
+        calamine::Data::String(s) => Ok(s.clone()),
+        calamine::Data::Bool(b) => Ok(b.to_string()),
+        calamine::Data::DateTime(d) => {
+            let dt = d.as_datetime().ok_or(AppError::Import(
+                "Failed to convert Excel datetime to a valid date".to_string(),
+            ))?;
+
+            // TODO: What is the timezone here? We need to store in UTC
+            // TODO: Should we store with Time here? Right now we are stripping the Time part
+            Ok(dt.date().to_string())
+        }
+        calamine::Data::DateTimeIso(d) | calamine::Data::DurationIso(d) => Ok(d.clone()),
+        calamine::Data::Error(e) => Err(AppError::Import(e.to_string())),
+        calamine::Data::Empty => Ok(String::new()),
+    }
 }
 
 fn ensure_extension(file: &Path, expected_extension: &str) -> Result<(), AppError> {
