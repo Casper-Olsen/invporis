@@ -207,7 +207,7 @@ fn default_saxo_fee_currency() -> String {
 
 #[derive(serde::Deserialize)]
 pub struct SaxoTrade {
-    #[serde(rename = "Event", deserialize_with = "deserialize_event")]
+    #[serde(rename = "Event", deserialize_with = "deserialize_saxo_event")]
     pub event: SaxoEvent,
 
     #[serde(rename = "Instrument ISIN")]
@@ -219,7 +219,7 @@ pub struct SaxoTrade {
     #[serde(rename = "Quantity")]
     pub quantity: Decimal,
 
-    #[serde(rename = "Price", deserialize_with = "deserialize_price")]
+    #[serde(rename = "Price", deserialize_with = "deserialize_saxo_price")]
     pub price: Decimal,
 
     #[serde(rename = "Instrument currency")]
@@ -319,21 +319,13 @@ fn data_to_string(data: &calamine::Data) -> Result<String, AppError> {
     }
 }
 
-fn deserialize_comma_decimal<'de, D>(deserializer: D) -> Result<Decimal, D::Error>
-where
-    D: serde::Deserializer<'de>,
-{
-    let s = String::deserialize(deserializer)?;
-    let sanitized = s.replace(',', ".");
-    Decimal::from_str(&sanitized).map_err(serde::de::Error::custom)
-}
-
-fn deserialize_price<'de, D>(deserializer: D) -> Result<Decimal, D::Error>
+fn deserialize_saxo_price<'de, D>(deserializer: D) -> Result<Decimal, D::Error>
 where
     D: serde::Deserializer<'de>,
 {
     let s = String::deserialize(deserializer)?;
 
+    // Expected format like: "166.8 DKK"
     let Some(index) = s.find(' ') else {
         return Err(serde::de::Error::custom(
             "invalid price format; missing space separator",
@@ -343,7 +335,7 @@ where
     Decimal::from_str(&s[..index]).map_err(serde::de::Error::custom)
 }
 
-fn deserialize_event<'de, D>(deserializer: D) -> Result<SaxoEvent, D::Error>
+fn deserialize_saxo_event<'de, D>(deserializer: D) -> Result<SaxoEvent, D::Error>
 where
     D: serde::Deserializer<'de>,
 {
@@ -355,6 +347,7 @@ where
         ));
     };
 
+    // Expected format like: "Buy 72 @ 166.80 DKK"
     let event = &s[..i];
     match event {
         "Buy" => Ok(SaxoEvent::Buy),
@@ -362,6 +355,16 @@ where
         _ => Err(serde::de::Error::custom("invalid event type".to_string())),
     }
 }
+
+fn deserialize_comma_decimal<'de, D>(deserializer: D) -> Result<Decimal, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let s = String::deserialize(deserializer)?;
+    let sanitized = s.replace(',', ".");
+    Decimal::from_str(&sanitized).map_err(serde::de::Error::custom)
+}
+
 fn ensure_extension(file: &Path, expected_extension: &str) -> Result<(), AppError> {
     let Some(extension) = file.extension() else {
         return Err(AppError::Import("File has no extension".to_string()));
