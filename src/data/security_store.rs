@@ -1,8 +1,8 @@
+use rusqlite::params;
 use std::collections::HashSet;
 
-use rusqlite::params;
-
-use crate::{data::db::Db, domain::trade::Security, error::AppError};
+use crate::domain::security::Security;
+use crate::{data::db::Db, error::AppError};
 
 pub fn insert_securities(db: &mut Db, securities: &HashSet<Security>) -> Result<(), AppError> {
     let transaction = db.connection.transaction()?;

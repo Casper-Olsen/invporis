@@ -35,5 +35,6 @@ const MIGRATIONS_SLICE: &[M<'_>] = &[
 const MIGRATIONS: Migrations<'_> = Migrations::from_slice(MIGRATIONS_SLICE);
 
 pub fn migrate(db: &mut Db) {
+    // TODO: Don't use unwrap here
     MIGRATIONS.to_latest(&mut db.connection).unwrap();
 }
