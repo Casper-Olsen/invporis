@@ -4,15 +4,15 @@ use std::{fs, path::PathBuf};
 
 use crate::error::AppError;
 
+pub struct Db {
+    pub connection: Connection,
+}
+
 #[derive(Clone, Copy)]
 pub enum DbLocation {
     Persisted,
     #[cfg(test)]
     InMemory,
-}
-
-pub struct Db {
-    pub connection: Connection,
 }
 
 impl Db {

@@ -4,34 +4,6 @@ use chrono::NaiveDate;
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use rust_decimal::{Decimal, dec};
 
-#[derive(ValueEnum, Clone, Debug)]
-pub enum Event {
-    Buy,
-    Sell,
-}
-
-#[derive(ValueEnum, Clone, Debug)]
-pub enum AssetType {
-    Security,
-    Crypto,
-}
-
-#[derive(ValueEnum, Clone, Debug)]
-pub enum Provider {
-    Nordnet,
-    Saxo,
-}
-
-impl std::fmt::Display for Event {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let s = match self {
-            Self::Buy => "buy",
-            Self::Sell => "sell",
-        };
-        write!(f, "{s}")
-    }
-}
-
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
 pub struct RootCommand {
@@ -64,7 +36,7 @@ pub struct AddArgs {
     #[arg(long, short = 'i', required = true)]
     pub isin: String,
 
-    #[arg(long, short = 'a', required = true, default_value = "Security")]
+    #[arg(long, short = 'a', required = true, default_value_t = AssetType::Security)]
     pub asset_type: AssetType,
 
     #[arg(long, short = 'q', required = false, default_value_t = dec!(1))]
@@ -93,4 +65,41 @@ pub struct ImportArgs {
 
     #[arg(long, short = 'p', required = true)]
     pub provider: Provider,
+}
+#[derive(ValueEnum, Clone, Debug)]
+pub enum Event {
+    Buy,
+    Sell,
+}
+
+impl std::fmt::Display for Event {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = match self {
+            Self::Buy => "buy",
+            Self::Sell => "sell",
+        };
+        write!(f, "{s}")
+    }
+}
+
+#[derive(ValueEnum, Clone, Debug)]
+pub enum AssetType {
+    Security,
+    Crypto,
+}
+
+impl std::fmt::Display for AssetType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = match self {
+            Self::Security => "security",
+            Self::Crypto => "crypto",
+        };
+        write!(f, "{s}")
+    }
+}
+
+#[derive(ValueEnum, Clone, Debug)]
+pub enum Provider {
+    Nordnet,
+    Saxo,
 }
