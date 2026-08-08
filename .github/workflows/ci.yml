@@ -24,10 +24,13 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          components: clippy
+          components: clippy, rustfmt
 
       - name: Rust Cache
         uses: swatinem/rust-cache@v2
+
+      - name: Check formatting
+        run: cargo fmt --check
 
       - name: Install cargo-nextest
         uses: taiki-e/install-action@nextest
