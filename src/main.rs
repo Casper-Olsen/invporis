@@ -6,9 +6,7 @@ mod domain;
 
 use clap::Parser;
 
-use crate::apperror::AppError;
-use crate::cli::command::RootCommand;
-use crate::data::db::DbLocation;
+use crate::{apperror::AppError, cli::command::RootCommand, data::db::DbLocation};
 
 fn main() {
     env_logger::init();

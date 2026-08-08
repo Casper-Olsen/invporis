@@ -11,12 +11,14 @@ use std::{
     str::FromStr,
 };
 
-use crate::domain::security::Security;
 use crate::{
     apperror::AppError,
     cli::command::{ImportArgs, Provider as CliProvider},
     data::{db::Db, security_store, trade_store},
-    domain::trade::{Provider as DomainProvider, Trade},
+    domain::{
+        security::Security,
+        trade::{Provider as DomainProvider, Trade},
+    },
 };
 
 const VALUTA: &str = "valuta";
