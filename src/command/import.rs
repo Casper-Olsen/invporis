@@ -324,9 +324,7 @@ fn data_to_string(data: &calamine::Data) -> Result<String, AppError> {
 }
 
 // TODO: Import coinbase csv.
-// 1. Create asset in "trade", that can contain Bitcoin etc. Should be nullable so we don't need it
-//    for other trades.
-// 2. to_security needs to be Option, because Bitcoin is not a security
+// 1. to_security needs to be Option, because Bitcoin is not a security
 
 fn deserialize_saxo_price<'de, D>(deserializer: D) -> Result<Decimal, D::Error>
 where
