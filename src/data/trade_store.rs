@@ -9,7 +9,7 @@ use crate::{
 };
 
 const INSERT_SQL: &str =
-    "insert into trades (event, isin, quantity, price, price_currency, fee, fee_currency, executed_at, provider, provider_id)
+    "insert into trades (event, isin, quantity, price, price_currency, fee, fee_currency, executed_date, provider, provider_id)
      values (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)";
 
 pub fn insert_trade(db: &Db, trade: &Trade) -> Result<(), AppError> {
@@ -23,7 +23,7 @@ pub fn insert_trade(db: &Db, trade: &Trade) -> Result<(), AppError> {
             trade.price.currency.clone(),
             trade.fee.amount.to_string(),
             trade.fee.currency.clone(),
-            trade.executed_at,
+            trade.executed_date,
             trade.provider.map(crate::domain::trade::Provider::as_str),
             trade.provider_id
         ],
@@ -46,7 +46,7 @@ pub fn insert_trades(db: &mut Db, trades: &Vec<Trade>) -> Result<(), AppError> {
                 trade.price.currency.clone(),
                 trade.fee.amount.to_string(),
                 trade.fee.currency.clone(),
-                trade.executed_at,
+                trade.executed_date,
                 trade.provider.map(crate::domain::trade::Provider::as_str),
                 trade.provider_id
             ])?;

@@ -21,7 +21,7 @@ pub fn run(args: AddArgs, db: &Db) -> Result<(), AppError> {
             amount: args.price,
             currency: args.price_currency,
         },
-        executed_at: args.executed_at,
+        executed_date: args.executed_date,
         fee: MonetaryAmount {
             amount: args.fee,
             currency: args.fee_currency,

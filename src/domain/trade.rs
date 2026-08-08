@@ -1,10 +1,65 @@
-use chrono::{DateTime, Utc};
+use chrono::NaiveDate;
 use rust_decimal::Decimal;
 
 use crate::{
     cli,
     command::import::{NordnetEvent, NordnetTrade, SaxoEvent, SaxoTrade},
 };
+
+#[derive(Debug)]
+pub struct Trade {
+    pub event: Event,
+    pub isin: String,
+    pub quantity: Decimal,
+    pub price: MonetaryAmount,
+    pub fee: MonetaryAmount,
+    pub executed_date: NaiveDate,
+    pub provider: Option<Provider>,
+    pub provider_id: Option<String>,
+}
+
+impl From<NordnetTrade> for Trade {
+    fn from(nordnet_trade: NordnetTrade) -> Self {
+        Self {
+            event: nordnet_trade.event.into(),
+            isin: nordnet_trade.isin,
+            quantity: nordnet_trade.quantity,
+            price: MonetaryAmount {
+                amount: nordnet_trade.price,
+                currency: nordnet_trade.price_currency,
+            },
+            fee: MonetaryAmount {
+                // Nordnet reports fees as positive amounts.
+                amount: -nordnet_trade.fee.abs(),
+                currency: nordnet_trade.fee_currency,
+            },
+            executed_date: nordnet_trade.executed_date,
+            provider: Some(Provider::Nordnet),
+            provider_id: Some(nordnet_trade.id),
+        }
+    }
+}
+
+impl From<SaxoTrade> for Trade {
+    fn from(saxo_trade: SaxoTrade) -> Self {
+        Self {
+            event: saxo_trade.event.into(),
+            isin: saxo_trade.isin,
+            quantity: saxo_trade.quantity,
+            price: MonetaryAmount {
+                amount: saxo_trade.price,
+                currency: saxo_trade.price_currency,
+            },
+            fee: MonetaryAmount {
+                amount: saxo_trade.fee,
+                currency: saxo_trade.fee_currency,
+            },
+            executed_date: saxo_trade.executed_date,
+            provider: Some(Provider::Saxo),
+            provider_id: Some(saxo_trade.id),
+        }
+    }
+}
 
 #[derive(Clone, Copy, Debug)]
 pub enum Event {
@@ -67,70 +122,4 @@ impl Provider {
 pub struct MonetaryAmount {
     pub amount: Decimal,
     pub currency: String,
-}
-
-#[derive(Debug)]
-pub struct Trade {
-    pub event: Event,
-    pub isin: String,
-    pub quantity: Decimal,
-    pub price: MonetaryAmount,
-    pub fee: MonetaryAmount,
-    pub executed_at: DateTime<Utc>,
-    pub provider: Option<Provider>,
-    pub provider_id: Option<String>,
-}
-
-impl From<NordnetTrade> for Trade {
-    fn from(nordnet_trade: NordnetTrade) -> Self {
-        let datetime_utc = nordnet_trade
-            .executed_at
-            .and_hms_opt(0, 0, 0)
-            .expect("00:00:00 is always a valid time")
-            .and_utc();
-
-        Self {
-            event: nordnet_trade.event.into(),
-            isin: nordnet_trade.isin,
-            quantity: nordnet_trade.quantity,
-            price: MonetaryAmount {
-                amount: nordnet_trade.price,
-                currency: nordnet_trade.price_currency,
-            },
-            fee: MonetaryAmount {
-                amount: nordnet_trade.fee,
-                currency: nordnet_trade.fee_currency,
-            },
-            executed_at: datetime_utc,
-            provider: Some(Provider::Nordnet),
-            provider_id: Some(nordnet_trade.id),
-        }
-    }
-}
-
-impl From<SaxoTrade> for Trade {
-    fn from(saxo_trade: SaxoTrade) -> Self {
-        let datetime_utc = saxo_trade
-            .executed_at
-            .and_hms_opt(0, 0, 0)
-            .expect("00:00:00 is always a valid time")
-            .and_utc();
-
-        Self {
-            event: saxo_trade.event.into(),
-            isin: saxo_trade.isin,
-            quantity: saxo_trade.quantity,
-            price: MonetaryAmount {
-                amount: saxo_trade.price,
-                currency: saxo_trade.price_currency,
-            },
-            fee: MonetaryAmount {
-                amount: saxo_trade.fee,
-                currency: saxo_trade.fee_currency,
-            },
-            executed_at: datetime_utc,
-            provider: Some(Provider::Saxo),
-            provider_id: Some(saxo_trade.id),
-        }
-    }
 }

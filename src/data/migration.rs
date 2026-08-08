@@ -17,7 +17,7 @@ const MIGRATIONS_SLICE: &[M<'_>] = &[
              price_currency TEXT NOT NULL,
              fee TEXT NOT NULL DEFAULT '0',
              fee_currency TEXT NOT NULL,
-             executed_at INTEGER NOT NULL,
+             executed_date INTEGER NOT NULL,
              provider TEXT NULL,
              provider_id TEXT NULL);
          ",

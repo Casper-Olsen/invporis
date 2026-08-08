@@ -48,7 +48,7 @@ mod tests {
                 price_currency: dkk.clone(),
                 fee_currency: dkk,
                 fee: dec!(0),
-                executed_at: Local::now().to_utc(),
+                executed_date: Local::now().to_utc(),
             }),
         };
         let res = execute(root_command, DbLocation::InMemory);

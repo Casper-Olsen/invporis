@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use chrono::{DateTime, Utc};
+use chrono::NaiveDate;
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use rust_decimal::{Decimal, dec};
 
@@ -74,7 +74,7 @@ pub struct AddArgs {
     pub fee_currency: String,
 
     #[arg(long, short = 't', required = true)]
-    pub executed_at: DateTime<Utc>,
+    pub executed_date: NaiveDate,
 }
 
 #[derive(Args)]

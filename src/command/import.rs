@@ -110,7 +110,6 @@ pub struct NordnetTrade {
     #[serde(rename = "Indkøbsværdi valuta")]
     pub price_currency: String,
 
-    // TODO: Store fee as negative
     #[serde(
         rename = "Samlede afgifter",
         deserialize_with = "deserialize_comma_decimal"
@@ -121,7 +120,7 @@ pub struct NordnetTrade {
     pub fee_currency: String,
 
     #[serde(rename = "Handelsdag")]
-    pub executed_at: NaiveDate,
+    pub executed_date: NaiveDate,
 
     #[serde(rename = "Id")]
     pub id: String,
@@ -232,7 +231,7 @@ pub struct SaxoTrade {
     pub fee_currency: String,
 
     #[serde(rename = "Trade Date")]
-    pub executed_at: NaiveDate,
+    pub executed_date: NaiveDate,
 
     #[serde(rename = "Trade ID")]
     pub id: String,
@@ -309,8 +308,6 @@ fn data_to_string(data: &calamine::Data) -> Result<String, AppError> {
                 "Failed to convert Excel datetime to a valid date".to_string(),
             ))?;
 
-            // TODO: What is the timezone here? We need to store in UTC
-            // TODO: Should we store with Time here? Right now we are stripping the Time part
             Ok(dt.date().to_string())
         }
         calamine::Data::DateTimeIso(d) | calamine::Data::DurationIso(d) => Ok(d.clone()),
@@ -318,6 +315,11 @@ fn data_to_string(data: &calamine::Data) -> Result<String, AppError> {
         calamine::Data::Empty => Ok(String::new()),
     }
 }
+
+// TODO: Import coinbase csv.
+// 1. Create asset in "trade", that can contain Bitcoin etc. Should be nullable so we don't need it
+//    for other trades.
+// 2. to_security needs to be Option, because Bitcoin is not a security
 
 fn deserialize_saxo_price<'de, D>(deserializer: D) -> Result<Decimal, D::Error>
 where
