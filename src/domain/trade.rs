@@ -1,5 +1,5 @@
 use chrono::NaiveDate;
-use rust_decimal::Decimal;
+use rust_decimal::{Decimal, prelude::Zero};
 
 use crate::{
     cli,
@@ -33,8 +33,12 @@ impl From<NordnetTrade> for Trade {
                 currency: nordnet_trade.price_currency,
             },
             fee: MonetaryAmount {
-                // Nordnet reports fees as positive amounts.
-                amount: -nordnet_trade.fee.abs(),
+                amount: if nordnet_trade.fee.is_zero() {
+                    Decimal::zero()
+                } else {
+                    // Nordnet reports fees as positive amounts.
+                    -nordnet_trade.fee.abs()
+                },
                 currency: nordnet_trade.fee_currency,
             },
             executed_date: nordnet_trade.executed_date,
