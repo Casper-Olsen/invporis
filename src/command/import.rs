@@ -342,6 +342,43 @@ fn data_to_string(data: &calamine::Data) -> Result<String, AppError> {
     }
 }
 
+fn deserialize_saxo_event<'de, D>(deserializer: D) -> Result<SaxoEvent, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let s = String::deserialize(deserializer)?;
+
+    let Some(i) = s.find(' ') else {
+        return Err(serde::de::Error::custom(
+            "invalid event format; missing space separator",
+        ));
+    };
+
+    // Expected format like: "Buy 72 @ 166.80 DKK"
+    let event = &s[..i];
+    match event {
+        "Buy" => Ok(SaxoEvent::Buy),
+        "Sell" => Ok(SaxoEvent::Sell),
+        _ => Err(serde::de::Error::custom("invalid event type".to_string())),
+    }
+}
+
+fn deserialize_saxo_price<'de, D>(deserializer: D) -> Result<Decimal, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let s = String::deserialize(deserializer)?;
+
+    // Expected format like: "166.8 DKK"
+    let Some(index) = s.find(' ') else {
+        return Err(serde::de::Error::custom(
+            "invalid price format; missing space separator",
+        ));
+    };
+
+    Decimal::from_str(&s[..index]).map_err(serde::de::Error::custom)
+}
+
 #[derive(Clone, Debug, serde::Deserialize)]
 pub enum CoinbaseEvent {
     #[serde(rename = "Buy")]
@@ -422,22 +459,6 @@ fn import_coinbase(file: PathBuf, db: &mut Db) -> Result<(), AppError> {
     Ok(())
 }
 
-fn deserialize_saxo_price<'de, D>(deserializer: D) -> Result<Decimal, D::Error>
-where
-    D: serde::Deserializer<'de>,
-{
-    let s = String::deserialize(deserializer)?;
-
-    // Expected format like: "166.8 DKK"
-    let Some(index) = s.find(' ') else {
-        return Err(serde::de::Error::custom(
-            "invalid price format; missing space separator",
-        ));
-    };
-
-    Decimal::from_str(&s[..index]).map_err(serde::de::Error::custom)
-}
-
 fn deserialize_coinbase_price<'de, D>(deserializer: D) -> Result<Decimal, D::Error>
 where
     D: serde::Deserializer<'de>,
@@ -460,27 +481,6 @@ where
         .map_err(serde::de::Error::custom)?;
 
     Ok(naive.date())
-}
-
-fn deserialize_saxo_event<'de, D>(deserializer: D) -> Result<SaxoEvent, D::Error>
-where
-    D: serde::Deserializer<'de>,
-{
-    let s = String::deserialize(deserializer)?;
-
-    let Some(i) = s.find(' ') else {
-        return Err(serde::de::Error::custom(
-            "invalid event format; missing space separator",
-        ));
-    };
-
-    // Expected format like: "Buy 72 @ 166.80 DKK"
-    let event = &s[..i];
-    match event {
-        "Buy" => Ok(SaxoEvent::Buy),
-        "Sell" => Ok(SaxoEvent::Sell),
-        _ => Err(serde::de::Error::custom("invalid event type".to_string())),
-    }
 }
 
 fn deserialize_comma_decimal<'de, D>(deserializer: D) -> Result<Decimal, D::Error>
