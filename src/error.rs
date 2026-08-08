@@ -14,6 +14,9 @@ pub enum AppError {
     #[error("Database error: {0}")]
     Database(#[from] rusqlite::Error),
 
+    #[error("Database migration error: {0}")]
+    Migration(#[from] rusqlite_migration::Error),
+
     #[error("XLSX error: {0}")]
     Xlsx(#[from] calamine::XlsxError),
 

@@ -1,6 +1,6 @@
 use rusqlite_migration::{M, Migrations};
 
-use crate::data::db::Db;
+use crate::{data::db::Db, error::AppError};
 
 /// The list of sequential database migrations.
 ///
@@ -34,7 +34,7 @@ const MIGRATIONS_SLICE: &[M<'_>] = &[
 
 const MIGRATIONS: Migrations<'_> = Migrations::from_slice(MIGRATIONS_SLICE);
 
-pub fn migrate(db: &mut Db) {
-    // TODO: Don't use unwrap here
-    MIGRATIONS.to_latest(&mut db.connection).unwrap();
+pub fn migrate(db: &mut Db) -> Result<(), AppError> {
+    MIGRATIONS.to_latest(&mut db.connection)?;
+    Ok(())
 }
