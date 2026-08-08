@@ -2,7 +2,7 @@ use directories::ProjectDirs;
 use rusqlite::{Connection, Result};
 use std::{fs, path::PathBuf};
 
-use crate::error::AppError;
+use crate::apperror::AppError;
 
 pub struct Db {
     pub connection: Connection,

@@ -2,7 +2,7 @@ use rusqlite::{Transaction, params};
 use std::collections::HashSet;
 
 use crate::domain::security::Security;
-use crate::{data::db::Db, error::AppError};
+use crate::{apperror::AppError, data::db::Db};
 
 pub fn insert_securities(
     transaction: &Transaction,

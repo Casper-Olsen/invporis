@@ -1,6 +1,6 @@
 use rusqlite_migration::{M, Migrations};
 
-use crate::{data::db::Db, error::AppError};
+use crate::{apperror::AppError, data::db::Db};
 
 /// The list of sequential database migrations.
 ///

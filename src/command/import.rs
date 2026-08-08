@@ -1,5 +1,5 @@
 use calamine::{Reader, Xlsx, open_workbook};
-use chrono::NaiveDate;
+use chrono::{NaiveDate, NaiveDateTime};
 use csv::{ReaderBuilder, StringRecord};
 use encoding_rs::UTF_16LE;
 use log::debug;
@@ -13,10 +13,10 @@ use std::{
 
 use crate::domain::security::Security;
 use crate::{
+    apperror::AppError,
     cli::command::{ImportArgs, Provider as CliProvider},
     data::{db::Db, security_store, trade_store},
     domain::trade::{Provider as DomainProvider, Trade},
-    error::AppError,
 };
 
 const VALUTA: &str = "valuta";
@@ -26,11 +26,12 @@ pub fn run(args: ImportArgs, db: &mut Db) -> Result<(), AppError> {
     match args.provider {
         CliProvider::Nordnet => import_nordnet(args.file, db),
         CliProvider::Saxo => import_saxo(args.file, db),
+        CliProvider::Coinbase => import_coinbase(args.file, db),
     }
 }
 
 trait ImportTrade: DeserializeOwned {
-    fn to_security(&self) -> Security;
+    fn to_security(&self) -> Option<Security>;
     fn into_trade(self) -> Trade;
 }
 
@@ -50,9 +51,22 @@ where
     let mut trades_to_insert = Vec::new();
 
     let mut parsed = 0;
+    let mut skipped = 0;
     for result in records {
         let record = result?;
-        let source_trade = record.deserialize::<T>(Some(headers))?;
+
+        // We allow deserialization errors because CSV files from different providers
+        // may contain a mix of trades, transfers, and other data. This allows valid
+        // trades to be imported without failing the entire import.
+        let source_trade = match record.deserialize::<T>(Some(headers)) {
+            Ok(trade) => trade,
+            Err(err) => {
+                debug!("Failed to deserialize record: {err}");
+                skipped += 1;
+                continue;
+            }
+        };
+
         let security = source_trade.to_security();
         let trade = source_trade.into_trade();
 
@@ -67,7 +81,9 @@ where
             continue;
         }
 
-        if existing_securities.insert(security.key()) {
+        if let Some(security) = security
+            && existing_securities.insert(security.key())
+        {
             securities_to_insert.insert(security);
         }
 
@@ -84,8 +100,11 @@ where
     debug!(
         "Parsed {} trades, imported {} new trades",
         parsed,
-        trades_to_insert.len()
+        trades_to_insert.len(),
     );
+    if skipped > 0 {
+        debug!("Skipped {skipped} records that could not be deserialized as trades");
+    }
     debug!("Imported {} new securities", securities_to_insert.len());
 
     Ok(())
@@ -131,12 +150,12 @@ pub struct NordnetTrade {
 }
 
 impl ImportTrade for NordnetTrade {
-    fn to_security(&self) -> Security {
-        Security {
+    fn to_security(&self) -> Option<Security> {
+        Some(Security {
             isin: self.isin.clone(),
             name: Some(self.security_name.clone()),
             currency: self.price_currency.clone(),
-        }
+        })
     }
 
     fn into_trade(self) -> Trade {
@@ -245,12 +264,12 @@ pub struct SaxoTrade {
 }
 
 impl ImportTrade for SaxoTrade {
-    fn to_security(&self) -> Security {
-        Security {
+    fn to_security(&self) -> Option<Security> {
+        Some(Security {
             isin: self.isin.clone(),
             name: Some(self.security_name.clone()),
             currency: self.price_currency.clone(),
-        }
+        })
     }
 
     fn into_trade(self) -> Trade {
@@ -323,8 +342,85 @@ fn data_to_string(data: &calamine::Data) -> Result<String, AppError> {
     }
 }
 
-// TODO: Import coinbase csv.
-// 1. to_security needs to be Option, because Bitcoin is not a security
+#[derive(Clone, Debug, serde::Deserialize)]
+pub enum CoinbaseEvent {
+    #[serde(rename = "Buy")]
+    Buy,
+
+    #[serde(rename = "Sell")]
+    Sell,
+}
+
+#[derive(serde::Deserialize)]
+pub struct CoinbaseTrade {
+    #[serde(rename = "Transaction Type")]
+    pub event: CoinbaseEvent,
+
+    #[serde(rename = "Asset")]
+    pub symbol: String,
+
+    #[serde(rename = "Quantity Transacted")]
+    pub quantity: Decimal,
+
+    #[serde(
+        rename = "Price at Transaction",
+        deserialize_with = "deserialize_coinbase_price"
+    )]
+    pub price: Decimal,
+
+    #[serde(rename = "Price Currency")]
+    pub price_currency: String,
+
+    #[serde(rename = "Fees and/or Spread")]
+    pub fee: Decimal,
+
+    #[serde(
+        rename = "Timestamp",
+        deserialize_with = "deserialize_coinbase_timestamp"
+    )]
+    pub executed_date: NaiveDate,
+
+    #[serde(rename = "ID")]
+    pub id: String,
+}
+
+impl ImportTrade for CoinbaseTrade {
+    fn to_security(&self) -> Option<Security> {
+        None
+    }
+
+    fn into_trade(self) -> Trade {
+        self.into()
+    }
+}
+
+fn import_coinbase(file: PathBuf, db: &mut Db) -> Result<(), AppError> {
+    ensure_extension(&file, "csv")?;
+
+    let mut reader = ReaderBuilder::new()
+        .flexible(true)
+        .has_headers(false)
+        .from_path(file)?;
+
+    // The CSV contains metadata rows before the actual transaction header.
+    // Skip those rows until we reach the header row identified by the "ID" column.
+    let mut records = reader
+        .records()
+        .skip_while(|res| res.as_ref().is_ok_and(|sr| sr.get(0) != Some("ID")));
+
+    // Convert to Result<Option<_>> so `?` can propagate CSV errors while preserving a missing header as None.
+    let headers = records.next().transpose()?;
+
+    let Some(headers) = headers else {
+        return Err(AppError::Import(String::from(
+            "Could not find the header row (expected a row starting with 'ID')",
+        )));
+    };
+
+    import::<CoinbaseTrade>(db, DomainProvider::Coinbase, records, &headers)?;
+
+    Ok(())
+}
 
 fn deserialize_saxo_price<'de, D>(deserializer: D) -> Result<Decimal, D::Error>
 where
@@ -340,6 +436,30 @@ where
     };
 
     Decimal::from_str(&s[..index]).map_err(serde::de::Error::custom)
+}
+
+fn deserialize_coinbase_price<'de, D>(deserializer: D) -> Result<Decimal, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let s = String::deserialize(deserializer)?;
+
+    // TODO: Implement in a better way, so we extract the whole number even if there is not $ etc.
+    // Expected format like: "$43086.79"
+    Decimal::from_str(&s[1..]).map_err(serde::de::Error::custom)
+}
+
+fn deserialize_coinbase_timestamp<'de, D>(deserializer: D) -> Result<NaiveDate, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let s = String::deserialize(deserializer)?;
+
+    // Expected format like: "2022-01-16 09:52:22 UTC"
+    let naive = NaiveDateTime::parse_from_str(s.as_str(), "%Y-%m-%d %H:%M:%S %Z")
+        .map_err(serde::de::Error::custom)?;
+
+    Ok(naive.date())
 }
 
 fn deserialize_saxo_event<'de, D>(deserializer: D) -> Result<SaxoEvent, D::Error>

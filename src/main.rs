@@ -1,14 +1,14 @@
+mod apperror;
 mod cli;
 mod command;
 mod data;
 mod domain;
-mod error;
 
 use clap::Parser;
 
+use crate::apperror::AppError;
 use crate::cli::command::RootCommand;
 use crate::data::db::DbLocation;
-use crate::error::AppError;
 
 fn main() {
     env_logger::init();
@@ -42,7 +42,7 @@ mod tests {
         let root_command = RootCommand {
             command: Commands::Add(AddArgs {
                 event: crate::cli::command::Event::Buy,
-                isin: "test".to_string(),
+                isin: Some("test".to_string()),
                 asset_type: crate::cli::command::AssetType::Security,
                 quantity: dec!(33),
                 price: dec!(100),

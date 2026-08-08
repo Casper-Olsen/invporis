@@ -3,12 +3,12 @@ pub mod get_total_value;
 pub mod import;
 
 use crate::{
+    apperror::AppError,
     cli::command::{Commands, RootCommand},
     data::{
         db::{Db, DbLocation},
         migration,
     },
-    error::AppError,
 };
 
 pub fn execute(root_command: RootCommand, db_location: DbLocation) -> Result<(), AppError> {

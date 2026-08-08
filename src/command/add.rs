@@ -1,10 +1,10 @@
 use colored::Colorize;
 
 use crate::{
+    apperror::AppError,
     cli::command::AddArgs,
     data::{db::Db, trade_store},
     domain::trade::{MonetaryAmount, Trade},
-    error::AppError,
 };
 
 pub fn run(args: AddArgs, db: &Db) -> Result<(), AppError> {

@@ -3,13 +3,15 @@ use rust_decimal::{Decimal, prelude::Zero};
 
 use crate::{
     cli,
-    command::import::{NordnetEvent, NordnetTrade, SaxoEvent, SaxoTrade},
+    command::import::{
+        CoinbaseEvent, CoinbaseTrade, NordnetEvent, NordnetTrade, SaxoEvent, SaxoTrade,
+    },
 };
 
 #[derive(Debug)]
 pub struct Trade {
     pub event: Event,
-    pub isin: String,
+    pub isin: Option<String>,
     pub asset_type: AssetType,
     pub symbol: Option<String>,
     pub quantity: Decimal,
@@ -24,7 +26,7 @@ impl From<NordnetTrade> for Trade {
     fn from(nordnet_trade: NordnetTrade) -> Self {
         Self {
             event: nordnet_trade.event.into(),
-            isin: nordnet_trade.isin,
+            isin: Some(nordnet_trade.isin),
             asset_type: AssetType::Security,
             symbol: None,
             quantity: nordnet_trade.quantity,
@@ -52,7 +54,7 @@ impl From<SaxoTrade> for Trade {
     fn from(saxo_trade: SaxoTrade) -> Self {
         Self {
             event: saxo_trade.event.into(),
-            isin: saxo_trade.isin,
+            isin: Some(saxo_trade.isin),
             asset_type: AssetType::Security,
             symbol: Some(saxo_trade.symbol),
             quantity: saxo_trade.quantity,
@@ -67,6 +69,34 @@ impl From<SaxoTrade> for Trade {
             executed_date: saxo_trade.executed_date,
             provider: Some(Provider::Saxo),
             provider_id: Some(saxo_trade.id),
+        }
+    }
+}
+
+impl From<CoinbaseTrade> for Trade {
+    fn from(coinbase_trade: CoinbaseTrade) -> Self {
+        Self {
+            event: coinbase_trade.event.into(),
+            isin: None,
+            asset_type: AssetType::Crypto,
+            symbol: Some(coinbase_trade.symbol),
+            quantity: coinbase_trade.quantity,
+            price: MonetaryAmount {
+                amount: coinbase_trade.price,
+                currency: coinbase_trade.price_currency.clone(),
+            },
+            fee: MonetaryAmount {
+                amount: if coinbase_trade.fee.is_zero() {
+                    Decimal::zero()
+                } else {
+                    // Coinbase reports fees as positive amounts.
+                    -coinbase_trade.fee.abs()
+                },
+                currency: coinbase_trade.price_currency,
+            },
+            executed_date: coinbase_trade.executed_date,
+            provider: Some(Provider::Coinbase),
+            provider_id: Some(coinbase_trade.id),
         }
     }
 }
@@ -113,10 +143,20 @@ impl From<SaxoEvent> for Event {
     }
 }
 
+impl From<CoinbaseEvent> for Event {
+    fn from(item: CoinbaseEvent) -> Self {
+        match item {
+            CoinbaseEvent::Buy => Self::Buy,
+            CoinbaseEvent::Sell => Self::Sell,
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug)]
 pub enum Provider {
     Nordnet,
     Saxo,
+    Coinbase,
 }
 
 impl Provider {
@@ -124,6 +164,7 @@ impl Provider {
         match self {
             Self::Nordnet => "nordnet",
             Self::Saxo => "saxo",
+            Self::Coinbase => "coinbase",
         }
     }
 }

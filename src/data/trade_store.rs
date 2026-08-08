@@ -3,9 +3,9 @@ use std::collections::HashSet;
 use rusqlite::{Transaction, params};
 
 use crate::{
+    apperror::AppError,
     data::db::Db,
     domain::trade::{Provider, Trade},
-    error::AppError,
 };
 
 const INSERT_SQL: &str =

@@ -33,8 +33,8 @@ pub struct AddArgs {
     #[arg(long, short = 'e', required = true)]
     pub event: Event,
 
-    #[arg(long, short = 'i', required = true)]
-    pub isin: String,
+    #[arg(long, short = 'i', required = false)]
+    pub isin: Option<String>,
 
     #[arg(long, short = 'a', required = true, default_value_t = AssetType::Security)]
     pub asset_type: AssetType,
@@ -102,4 +102,5 @@ impl std::fmt::Display for AssetType {
 pub enum Provider {
     Nordnet,
     Saxo,
+    Coinbase,
 }
