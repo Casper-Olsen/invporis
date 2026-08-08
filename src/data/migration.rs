@@ -12,6 +12,8 @@ const MIGRATIONS_SLICE: &[M<'_>] = &[
              id INTEGER PRIMARY KEY,
              event TEXT NOT NULL,
              isin TEXT NULL,
+             asset_type TEXT NOT NULL,
+             symbol TEXT NULL,
              quantity TEXT NOT NULL,
              price TEXT NOT NULL,
              price_currency TEXT NOT NULL,

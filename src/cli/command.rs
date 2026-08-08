@@ -11,6 +11,12 @@ pub enum Event {
 }
 
 #[derive(ValueEnum, Clone, Debug)]
+pub enum AssetType {
+    Security,
+    Crypto,
+}
+
+#[derive(ValueEnum, Clone, Debug)]
 pub enum Provider {
     Nordnet,
     Saxo,
@@ -57,6 +63,9 @@ pub struct AddArgs {
 
     #[arg(long, short = 'i', required = true)]
     pub isin: String,
+
+    #[arg(long, short = 'a', required = true, default_value = "Security")]
+    pub asset_type: AssetType,
 
     #[arg(long, short = 'q', required = false, default_value_t = dec!(1))]
     pub quantity: Decimal,

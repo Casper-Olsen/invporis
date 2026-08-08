@@ -212,6 +212,9 @@ pub struct SaxoTrade {
     #[serde(rename = "Instrument ISIN")]
     pub isin: String,
 
+    #[serde(rename = "Instrument Symbol")]
+    pub symbol: String,
+
     #[serde(rename = "Instrument")]
     pub security_name: String,
 

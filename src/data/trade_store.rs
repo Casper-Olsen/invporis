@@ -9,8 +9,8 @@ use crate::{
 };
 
 const INSERT_SQL: &str =
-    "insert into trades (event, isin, quantity, price, price_currency, fee, fee_currency, executed_date, provider, provider_id)
-     values (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)";
+    "insert into trades (event, isin, asset_type, symbol, quantity, price, price_currency, fee, fee_currency, executed_date, provider, provider_id)
+     values (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)";
 
 pub fn insert_trade(db: &Db, trade: &Trade) -> Result<(), AppError> {
     db.connection.execute(
@@ -18,6 +18,8 @@ pub fn insert_trade(db: &Db, trade: &Trade) -> Result<(), AppError> {
         params![
             trade.event.as_str(),
             trade.isin,
+            trade.asset_type.as_str(),
+            trade.symbol,
             trade.quantity.to_string(),
             trade.price.amount.to_string(),
             trade.price.currency.clone(),
@@ -41,6 +43,8 @@ pub fn insert_trades(db: &mut Db, trades: &Vec<Trade>) -> Result<(), AppError> {
             statement.execute(params![
                 trade.event.as_str(),
                 trade.isin,
+                trade.asset_type.as_str(),
+                trade.symbol,
                 trade.quantity.to_string(),
                 trade.price.amount.to_string(),
                 trade.price.currency.clone(),

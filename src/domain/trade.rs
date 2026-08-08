@@ -10,6 +10,8 @@ use crate::{
 pub struct Trade {
     pub event: Event,
     pub isin: String,
+    pub asset_type: AssetType,
+    pub symbol: Option<String>,
     pub quantity: Decimal,
     pub price: MonetaryAmount,
     pub fee: MonetaryAmount,
@@ -23,6 +25,8 @@ impl From<NordnetTrade> for Trade {
         Self {
             event: nordnet_trade.event.into(),
             isin: nordnet_trade.isin,
+            asset_type: AssetType::Security,
+            symbol: None,
             quantity: nordnet_trade.quantity,
             price: MonetaryAmount {
                 amount: nordnet_trade.price,
@@ -45,6 +49,8 @@ impl From<SaxoTrade> for Trade {
         Self {
             event: saxo_trade.event.into(),
             isin: saxo_trade.isin,
+            asset_type: AssetType::Security,
+            symbol: Some(saxo_trade.symbol),
             quantity: saxo_trade.quantity,
             price: MonetaryAmount {
                 amount: saxo_trade.price,
@@ -114,6 +120,30 @@ impl Provider {
         match self {
             Self::Nordnet => "nordnet",
             Self::Saxo => "saxo",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub enum AssetType {
+    Security,
+    Crypto,
+}
+
+impl From<crate::cli::command::AssetType> for AssetType {
+    fn from(value: crate::cli::command::AssetType) -> Self {
+        match value {
+            cli::command::AssetType::Security => Self::Security,
+            cli::command::AssetType::Crypto => Self::Crypto,
+        }
+    }
+}
+
+impl AssetType {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Security => "security",
+            Self::Crypto => "crypto",
         }
     }
 }

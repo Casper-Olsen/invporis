@@ -13,7 +13,7 @@ pub fn insert_securities(db: &mut Db, securities: &HashSet<Security>) -> Result<
         )?;
 
         for security in securities {
-            statement.execute(params![security.isin, security.currency, security.name,])?;
+            statement.execute(params![security.isin, security.currency, security.name])?;
         }
     }
     transaction.commit()?;

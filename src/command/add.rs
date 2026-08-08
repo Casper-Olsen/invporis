@@ -16,6 +16,8 @@ pub fn run(args: AddArgs, db: &Db) -> Result<(), AppError> {
     let trade = Trade {
         event: crate::domain::trade::Event::from(args.event),
         isin: args.isin,
+        asset_type: args.asset_type.into(),
+        symbol: None,
         quantity: args.quantity,
         price: MonetaryAmount {
             amount: args.price,
