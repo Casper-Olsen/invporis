@@ -1,22 +1,21 @@
-use rusqlite::params;
+use rusqlite::{Transaction, params};
 use std::collections::HashSet;
 
 use crate::domain::security::Security;
 use crate::{data::db::Db, error::AppError};
 
-pub fn insert_securities(db: &mut Db, securities: &HashSet<Security>) -> Result<(), AppError> {
-    let transaction = db.connection.transaction()?;
-    {
-        let mut statement = transaction.prepare(
-            "insert into securities (isin, currency, name)
+pub fn insert_securities(
+    transaction: &Transaction,
+    securities: &HashSet<Security>,
+) -> Result<(), AppError> {
+    let mut statement = transaction.prepare(
+        "insert into securities (isin, currency, name)
              values (?1, ?2, ?3)",
-        )?;
+    )?;
 
-        for security in securities {
-            statement.execute(params![security.isin, security.currency, security.name])?;
-        }
+    for security in securities {
+        statement.execute(params![security.isin, security.currency, security.name])?;
     }
-    transaction.commit()?;
 
     Ok(())
 }

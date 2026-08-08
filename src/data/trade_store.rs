@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use rusqlite::params;
+use rusqlite::{Transaction, params};
 
 use crate::{
     data::db::Db,
@@ -34,29 +34,25 @@ pub fn insert_trade(db: &Db, trade: &Trade) -> Result<(), AppError> {
     Ok(())
 }
 
-pub fn insert_trades(db: &mut Db, trades: &Vec<Trade>) -> Result<(), AppError> {
-    let transaction = db.connection.transaction()?;
-    {
-        let mut statement = transaction.prepare(INSERT_SQL)?;
+pub fn insert_trades(transaction: &Transaction, trades: &Vec<Trade>) -> Result<(), AppError> {
+    let mut statement = transaction.prepare(INSERT_SQL)?;
 
-        for trade in trades {
-            statement.execute(params![
-                trade.event.as_str(),
-                trade.isin,
-                trade.asset_type.as_str(),
-                trade.symbol,
-                trade.quantity.to_string(),
-                trade.price.amount.to_string(),
-                trade.price.currency.clone(),
-                trade.fee.amount.to_string(),
-                trade.fee.currency.clone(),
-                trade.executed_date,
-                trade.provider.map(crate::domain::trade::Provider::as_str),
-                trade.provider_id
-            ])?;
-        }
+    for trade in trades {
+        statement.execute(params![
+            trade.event.as_str(),
+            trade.isin,
+            trade.asset_type.as_str(),
+            trade.symbol,
+            trade.quantity.to_string(),
+            trade.price.amount.to_string(),
+            trade.price.currency.clone(),
+            trade.fee.amount.to_string(),
+            trade.fee.currency.clone(),
+            trade.executed_date,
+            trade.provider.map(crate::domain::trade::Provider::as_str),
+            trade.provider_id
+        ])?;
     }
-    transaction.commit()?;
 
     Ok(())
 }

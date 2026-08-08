@@ -74,8 +74,12 @@ where
         trades_to_insert.push(trade);
     }
 
-    security_store::insert_securities(db, &securities_to_insert)?;
-    trade_store::insert_trades(db, &trades_to_insert)?;
+    let transaction = db.connection.transaction()?;
+
+    security_store::insert_securities(&transaction, &securities_to_insert)?;
+    trade_store::insert_trades(&transaction, &trades_to_insert)?;
+
+    transaction.commit()?;
 
     debug!(
         "Parsed {} trades, imported {} new trades",
