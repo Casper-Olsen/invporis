@@ -43,12 +43,13 @@ mod tests {
             command: Commands::Add(AddArgs {
                 event: crate::cli::command::Event::Buy,
                 isin: "test".to_string(),
+                asset_type: crate::cli::command::AssetType::Security,
                 quantity: dec!(33),
                 price: dec!(100),
                 price_currency: dkk.clone(),
                 fee_currency: dkk,
                 fee: dec!(0),
-                executed_date: Local::now().to_utc(),
+                executed_date: Local::now().date_naive(),
             }),
         };
         let res = execute(root_command, DbLocation::InMemory);
