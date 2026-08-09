@@ -181,9 +181,9 @@ fn import_nordnet(file: PathBuf, db: &mut Db) -> Result<(), AppError> {
     let (content, encoding_used, has_errors) = UTF_16LE.decode(&bytes);
 
     if has_errors {
-        return Err(AppError::Import(
-            "File contains invalid UTF-16LE text".to_string(),
-        ));
+        return Err(AppError::Import(String::from(
+            "File contains invalid UTF-16LE text",
+        )));
     }
 
     debug!("Decoded {} bytes", bytes.len());
@@ -226,7 +226,7 @@ fn into_nordnet_headers(csv_headers: &StringRecord) -> StringRecord {
 }
 
 fn default_saxo_fee_currency() -> String {
-    "DKK".to_string()
+    String::from("DKK")
 }
 
 #[derive(serde::Deserialize)]
@@ -332,9 +332,9 @@ fn data_to_string(data: &calamine::Data) -> Result<String, AppError> {
         calamine::Data::String(s) => Ok(s.clone()),
         calamine::Data::Bool(b) => Ok(b.to_string()),
         calamine::Data::DateTime(d) => {
-            let dt = d.as_datetime().ok_or(AppError::Import(
-                "Failed to convert Excel datetime to a valid date".to_string(),
-            ))?;
+            let dt = d.as_datetime().ok_or(AppError::Import(String::from(
+                "Failed to convert Excel datetime to a valid date",
+            )))?;
 
             Ok(dt.date().to_string())
         }
@@ -361,7 +361,7 @@ where
     match event {
         "Buy" => Ok(SaxoEvent::Buy),
         "Sell" => Ok(SaxoEvent::Sell),
-        _ => Err(serde::de::Error::custom("invalid event type".to_string())),
+        _ => Err(serde::de::Error::custom(String::from("invalid event type"))),
     }
 }
 
@@ -498,11 +498,13 @@ where
 
 fn ensure_extension(file: &Path, expected_extension: &str) -> Result<(), AppError> {
     let Some(extension) = file.extension() else {
-        return Err(AppError::Import("File has no extension".to_string()));
+        return Err(AppError::Import(String::from("File has no extension")));
     };
 
     if !extension.eq_ignore_ascii_case(expected_extension) {
-        return Err(AppError::Import("File has incorrect extension".to_string()));
+        return Err(AppError::Import(String::from(
+            "File has incorrect extension",
+        )));
     }
 
     Ok(())

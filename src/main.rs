@@ -36,11 +36,11 @@ mod tests {
 
     #[test]
     fn test_add_trade() {
-        let dkk = "DKK".to_string();
+        let dkk = String::from("DKK");
         let root_command = RootCommand {
             command: Commands::Add(AddArgs {
                 event: crate::cli::command::Event::Buy,
-                isin: Some("test".to_string()),
+                isin: Some(String::from("test")),
                 asset_type: crate::cli::command::AssetType::Security,
                 quantity: dec!(33),
                 price: dec!(100),
