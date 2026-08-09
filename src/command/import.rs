@@ -467,9 +467,11 @@ where
 {
     let s = String::deserialize(deserializer)?;
 
-    // TODO: Implement in a better way, so we extract the whole number even if there is not $ etc.
     // Expected format like: "$43086.79"
-    Decimal::from_str(&s[1..]).map_err(serde::de::Error::custom)
+    s.find(|c: char| c.is_numeric()).map_or_else(
+        || Err(serde::de::Error::custom("No price found")),
+        |pos| Decimal::from_str(&s[pos..]).map_err(serde::de::Error::custom),
+    )
 }
 
 fn deserialize_coinbase_timestamp<'de, D>(deserializer: D) -> Result<NaiveDate, D::Error>
