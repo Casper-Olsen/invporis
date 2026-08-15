@@ -3,7 +3,6 @@ use std::collections::HashSet;
 use rusqlite::{Transaction, params};
 
 use crate::{
-    apperror::AppError,
     data::db::Db,
     domain::trade::{Provider, Trade},
 };
@@ -12,7 +11,7 @@ const INSERT_SQL: &str =
     "insert into trades (event, isin, asset_type, symbol, quantity, price, price_currency, fee, fee_currency, executed_date, provider, provider_id)
      values (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)";
 
-pub fn insert_trade(db: &Db, trade: &Trade) -> Result<(), AppError> {
+pub fn insert_trade(db: &Db, trade: &Trade) -> Result<(), anyhow::Error> {
     db.connection.execute(
         INSERT_SQL,
         params![
@@ -34,7 +33,7 @@ pub fn insert_trade(db: &Db, trade: &Trade) -> Result<(), AppError> {
     Ok(())
 }
 
-pub fn insert_trades(transaction: &Transaction, trades: &Vec<Trade>) -> Result<(), AppError> {
+pub fn insert_trades(transaction: &Transaction, trades: &Vec<Trade>) -> Result<(), anyhow::Error> {
     let mut statement = transaction.prepare(INSERT_SQL)?;
 
     for trade in trades {
@@ -57,7 +56,7 @@ pub fn insert_trades(transaction: &Transaction, trades: &Vec<Trade>) -> Result<(
     Ok(())
 }
 
-pub fn list_trades(db: &Db, provider: Provider) -> Result<HashSet<String>, AppError> {
+pub fn list_trades(db: &Db, provider: Provider) -> Result<HashSet<String>, anyhow::Error> {
     let mut statement = db
         .connection
         .prepare("SELECT provider_id FROM trades WHERE provider = ?1")?;
@@ -66,6 +65,6 @@ pub fn list_trades(db: &Db, provider: Provider) -> Result<HashSet<String>, AppEr
         statement.query_map(params![provider.as_str()], |row| row.get::<_, String>(0))?;
 
     trade_iter
-        .map(|trade| trade.map_err(AppError::from))
+        .map(|trade| trade.map_err(anyhow::Error::from))
         .collect()
 }

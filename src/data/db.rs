@@ -1,8 +1,7 @@
+use anyhow::anyhow;
 use directories::ProjectDirs;
 use rusqlite::{Connection, Result};
 use std::{fs, path::PathBuf};
-
-use crate::apperror::AppError;
 
 pub struct Db {
     pub connection: Connection,
@@ -16,7 +15,7 @@ pub enum DbLocation {
 }
 
 impl Db {
-    pub fn open(location: DbLocation) -> Result<Self, AppError> {
+    pub fn open(location: DbLocation) -> Result<Self, anyhow::Error> {
         let connection = match location {
             DbLocation::Persisted => {
                 let data_dir = get_data_directory()?;
@@ -35,10 +34,8 @@ impl Db {
     }
 }
 
-fn get_data_directory() -> Result<PathBuf, AppError> {
+fn get_data_directory() -> Result<PathBuf, anyhow::Error> {
     ProjectDirs::from("io", "casperolsen", "invporis")
         .map(|p| p.data_dir().to_path_buf())
-        .ok_or(AppError::Path(String::from(
-            "Could not determine data directory",
-        )))
+        .ok_or_else(|| anyhow!("Could not determine data directory"))
 }

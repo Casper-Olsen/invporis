@@ -1,3 +1,4 @@
+use anyhow::anyhow;
 use calamine::{Reader, Xlsx, open_workbook};
 use chrono::{NaiveDate, NaiveDateTime};
 use csv::{ReaderBuilder, StringRecord};
@@ -12,7 +13,6 @@ use std::{
 };
 
 use crate::{
-    apperror::AppError,
     cli::command::{ImportArgs, Provider as CliProvider},
     data::{db::Db, security_store, trade_store},
     domain::{
@@ -24,11 +24,11 @@ use crate::{
 const VALUTA: &str = "valuta";
 const SAXO_SHEET_NAME: &str = "Trades";
 
-pub fn run(args: ImportArgs, db: &mut Db) -> Result<(), AppError> {
+pub fn run(args: ImportArgs, mut db: Db) -> Result<(), anyhow::Error> {
     match args.provider {
-        CliProvider::Nordnet => import_nordnet(args.file, db),
-        CliProvider::Saxo => import_saxo(args.file, db),
-        CliProvider::Coinbase => import_coinbase(args.file, db),
+        CliProvider::Nordnet => import_nordnet(args.file, &mut db),
+        CliProvider::Saxo => import_saxo(args.file, &mut db),
+        CliProvider::Coinbase => import_coinbase(args.file, &mut db),
     }
 }
 
@@ -42,7 +42,7 @@ fn import<T>(
     provider: DomainProvider,
     records: impl Iterator<Item = Result<StringRecord, csv::Error>>,
     headers: &StringRecord,
-) -> Result<(), AppError>
+) -> Result<(), anyhow::Error>
 where
     T: ImportTrade,
 {
@@ -174,16 +174,14 @@ pub enum NordnetEvent {
     Sell,
 }
 
-fn import_nordnet(file: PathBuf, db: &mut Db) -> Result<(), AppError> {
+fn import_nordnet(file: PathBuf, db: &mut Db) -> Result<(), anyhow::Error> {
     ensure_extension(&file, "csv")?;
 
     let bytes = std::fs::read(file)?;
     let (content, encoding_used, has_errors) = UTF_16LE.decode(&bytes);
 
     if has_errors {
-        return Err(AppError::Import(String::from(
-            "File contains invalid UTF-16LE text",
-        )));
+        return Err(anyhow!("File contains invalid UTF-16LE text"));
     }
 
     debug!("Decoded {} bytes", bytes.len());
@@ -288,15 +286,13 @@ pub enum SaxoEvent {
     Sell,
 }
 
-fn import_saxo(file: PathBuf, db: &mut Db) -> Result<(), AppError> {
+fn import_saxo(file: PathBuf, db: &mut Db) -> Result<(), anyhow::Error> {
     ensure_extension(&file, "xlsx")?;
 
     let mut workbook: Xlsx<_> = open_workbook(file)?;
 
     if !workbook.sheet_names().contains(&SAXO_SHEET_NAME.to_owned()) {
-        return Err(AppError::Import(format!(
-            "No {SAXO_SHEET_NAME} sheet in the file"
-        )));
+        return Err(anyhow!("No {SAXO_SHEET_NAME} sheet in the file"));
     }
 
     let mut buffer = vec![];
@@ -308,7 +304,7 @@ fn import_saxo(file: PathBuf, db: &mut Db) -> Result<(), AppError> {
             let record = row
                 .iter()
                 .map(data_to_string)
-                .collect::<Result<Vec<_>, AppError>>()?;
+                .collect::<Result<Vec<_>, anyhow::Error>>()?;
 
             csv_writer.write_record(record)?;
         }
@@ -325,21 +321,21 @@ fn import_saxo(file: PathBuf, db: &mut Db) -> Result<(), AppError> {
     Ok(())
 }
 
-fn data_to_string(data: &calamine::Data) -> Result<String, AppError> {
+fn data_to_string(data: &calamine::Data) -> Result<String, anyhow::Error> {
     match data {
         calamine::Data::Int(i) => Ok(i.to_string()),
         calamine::Data::Float(f) => Ok(f.to_string()),
         calamine::Data::String(s) => Ok(s.clone()),
         calamine::Data::Bool(b) => Ok(b.to_string()),
         calamine::Data::DateTime(d) => {
-            let dt = d.as_datetime().ok_or(AppError::Import(String::from(
-                "Failed to convert Excel datetime to a valid date",
-            )))?;
+            let dt = d
+                .as_datetime()
+                .ok_or_else(|| anyhow!("Failed to convert Excel datetime to a valid date"))?;
 
             Ok(dt.date().to_string())
         }
         calamine::Data::DateTimeIso(d) | calamine::Data::DurationIso(d) => Ok(d.clone()),
-        calamine::Data::Error(e) => Err(AppError::Import(e.to_string())),
+        calamine::Data::Error(e) => Err(anyhow!(e.to_string())),
         calamine::Data::Empty => Ok(String::new()),
     }
 }
@@ -433,7 +429,7 @@ impl ImportTrade for CoinbaseTrade {
     }
 }
 
-fn import_coinbase(file: PathBuf, db: &mut Db) -> Result<(), AppError> {
+fn import_coinbase(file: PathBuf, db: &mut Db) -> Result<(), anyhow::Error> {
     ensure_extension(&file, "csv")?;
 
     let mut reader = ReaderBuilder::new()
@@ -451,9 +447,9 @@ fn import_coinbase(file: PathBuf, db: &mut Db) -> Result<(), AppError> {
     let headers = records.next().transpose()?;
 
     let Some(headers) = headers else {
-        return Err(AppError::Import(String::from(
+        return Err(anyhow!(
             "Could not find the header row (expected a row starting with 'ID')",
-        )));
+        ));
     };
 
     import::<CoinbaseTrade>(db, DomainProvider::Coinbase, records, &headers)?;
@@ -496,15 +492,13 @@ where
     Decimal::from_str(&sanitized).map_err(serde::de::Error::custom)
 }
 
-fn ensure_extension(file: &Path, expected_extension: &str) -> Result<(), AppError> {
+fn ensure_extension(file: &Path, expected_extension: &str) -> Result<(), anyhow::Error> {
     let Some(extension) = file.extension() else {
-        return Err(AppError::Import(String::from("File has no extension")));
+        return Err(anyhow!("File has no extension"));
     };
 
     if !extension.eq_ignore_ascii_case(expected_extension) {
-        return Err(AppError::Import(String::from(
-            "File has incorrect extension",
-        )));
+        return Err(anyhow!("File has incorrect extension"));
     }
 
     Ok(())

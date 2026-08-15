@@ -19,25 +19,28 @@ pub enum Commands {
     #[command(about = "Add a trade")]
     Add(AddArgs),
 
-    /// Get total value of portfolio
-    #[command(about = "Get total value of portfolio")]
-    GetTotalValue,
+    /// Get value of portfolio (defaults to the total value of the portfolio)
+    #[command(about = "Get value of portfolio")]
+    GetValue,
 
     /// Import trades
-    #[command(about = "Import trades")]
+    #[command(about = "Import trades from file")]
     Import(ImportArgs),
 }
 
 #[derive(Args)]
 pub struct AddArgs {
-    #[arg(long, short = 'e', required = true)]
+    #[arg(long, short = 'e', required = false, default_value_t = Event::Buy)]
     pub event: Event,
+
+    #[arg(long, short = 'a', required = false, default_value_t = AssetType::Security)]
+    pub asset_type: AssetType,
+
+    #[arg(long, short = 's', required = false)]
+    pub symbol: Option<String>,
 
     #[arg(long, short = 'i', required = false)]
     pub isin: Option<String>,
-
-    #[arg(long, short = 'a', required = true, default_value_t = AssetType::Security)]
-    pub asset_type: AssetType,
 
     #[arg(long, short = 'q', required = false, default_value_t = dec!(1))]
     pub quantity: Decimal,
@@ -48,14 +51,14 @@ pub struct AddArgs {
     #[arg(long, required = false, default_value = "DKK")]
     pub price_currency: String,
 
+    #[arg(long, short = 'd', required = true)]
+    pub executed_date: NaiveDate,
+
     #[arg(long, short = 'f', required = false, default_value_t = dec!(0))]
     pub fee: Decimal,
 
     #[arg(long, required = false, default_value = "DKK")]
     pub fee_currency: String,
-
-    #[arg(long, short = 't', required = true)]
-    pub executed_date: NaiveDate,
 }
 
 #[derive(Args)]

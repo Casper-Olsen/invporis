@@ -1,20 +1,20 @@
+use anyhow::anyhow;
 use colored::Colorize;
+use rust_decimal::{Decimal, prelude::Zero};
 
 use crate::{
-    apperror::AppError,
     cli::command::AddArgs,
     data::{db::Db, trade_store},
     domain::trade::{MonetaryAmount, Trade},
 };
 
-pub fn run(args: AddArgs, db: &Db) -> Result<(), AppError> {
-    println!(
-        "Adding trade with event: {}",
-        args.event.to_string().green()
-    );
+pub fn run(args: AddArgs, db: &Db) -> Result<(), anyhow::Error> {
+    if args.isin.is_none() && args.symbol.is_none() {
+        return Err(anyhow!("Either ISIN or Symbol must be provided"));
+    }
 
     let trade = Trade {
-        event: crate::domain::trade::Event::from(args.event),
+        event: crate::domain::trade::Event::from(args.event.clone()),
         isin: args.isin,
         asset_type: args.asset_type.into(),
         symbol: None,
@@ -25,7 +25,12 @@ pub fn run(args: AddArgs, db: &Db) -> Result<(), AppError> {
         },
         executed_date: args.executed_date,
         fee: MonetaryAmount {
-            amount: args.fee,
+            amount: if args.fee.is_zero() {
+                Decimal::zero()
+            } else {
+                // We always want the fee as a negative value
+                -args.fee
+            },
             currency: args.fee_currency,
         },
         provider: None,
@@ -33,6 +38,8 @@ pub fn run(args: AddArgs, db: &Db) -> Result<(), AppError> {
     };
 
     trade_store::insert_trade(db, &trade)?;
+
+    println!("Added trade with event: {}", args.event.to_string().green());
 
     Ok(())
 }

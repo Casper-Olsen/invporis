@@ -1,12 +1,12 @@
 use rusqlite::{Transaction, params};
 use std::collections::HashSet;
 
-use crate::{apperror::AppError, data::db::Db, domain::security::Security};
+use crate::{data::db::Db, domain::security::Security};
 
 pub fn insert_securities(
     transaction: &Transaction,
     securities: &HashSet<Security>,
-) -> Result<(), AppError> {
+) -> Result<(), anyhow::Error> {
     let mut statement = transaction.prepare(
         "insert into securities (isin, currency, name)
              values (?1, ?2, ?3)",
@@ -19,7 +19,7 @@ pub fn insert_securities(
     Ok(())
 }
 
-pub fn list_keys(db: &Db) -> Result<HashSet<(String, String)>, AppError> {
+pub fn list_keys(db: &Db) -> Result<HashSet<(String, String)>, anyhow::Error> {
     let mut statement = db
         .connection
         .prepare("SELECT isin, currency FROM securities")?;
@@ -29,6 +29,6 @@ pub fn list_keys(db: &Db) -> Result<HashSet<(String, String)>, AppError> {
     })?;
 
     trade_iter
-        .map(|trade| trade.map_err(AppError::from))
+        .map(|trade| trade.map_err(anyhow::Error::from))
         .collect()
 }
