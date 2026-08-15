@@ -1,5 +1,10 @@
 allowed-duplicate-crates = [
     "hashbrown",
     "syn",
-    "bitflags"
+    "bitflags",
+    "core-foundation",
+    "getrandom",
+    "rand_core",
+    "rand",
+    "windows-sys"
 ]
