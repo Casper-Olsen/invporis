@@ -253,13 +253,13 @@ async fn process_mapping_batch(
                 continue;
             }
             MappingResult::Warning(warning) => {
-                if mapping_jobs[index].mic_code.is_none() && warning != "No identifier found" {
+                if mapping_jobs[index].mic_code.is_some() && warning == "No identifier found." {
+                    identifiers_not_found.push(mapping_jobs[index].clone());
+                } else {
                     errors.insert(
                         mapping_jobs[index].clone().into(),
                         anyhow!(warning).context("failed to get FIGI"),
                     );
-                } else {
-                    identifiers_not_found.push(mapping_jobs[index].clone());
                 }
 
                 continue;
