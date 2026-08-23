@@ -241,12 +241,13 @@ async fn process_mapping_batch(
     let mut errors = HashMap::new();
     let mut identifiers_not_found: Vec<MappingJob> = Vec::new();
 
+    // The API preserves request order: the result at `index` corresponds to
+    // `mapping_jobs[index]`.
     for (index, mapping) in mapping_results.into_iter().enumerate() {
         let metadata = match mapping {
             MappingResult::Data(data) => data,
             MappingResult::Error(error) => {
                 errors.insert(
-                    // TODO: Is it always safe to use index here? Multiple places in func
                     mapping_jobs[index].clone().into(),
                     anyhow!(error).context("failed to get FIGI"),
                 );
