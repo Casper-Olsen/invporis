@@ -244,21 +244,23 @@ async fn process_mapping_batch(
     // The API preserves request order: the result at `index` corresponds to
     // `mapping_jobs[index]`.
     for (index, mapping) in mapping_results.into_iter().enumerate() {
+        let mapping_job = mapping_jobs[index].clone();
+
         let metadata = match mapping {
             MappingResult::Data(data) => data,
             MappingResult::Error(error) => {
                 errors.insert(
-                    mapping_jobs[index].clone().into(),
+                    mapping_job.into(),
                     anyhow!(error).context("failed to get FIGI"),
                 );
                 continue;
             }
             MappingResult::Warning(warning) => {
-                if mapping_jobs[index].mic_code.is_some() && warning == "No identifier found." {
-                    identifiers_not_found.push(mapping_jobs[index].clone());
+                if mapping_job.mic_code.is_some() && warning == "No identifier found." {
+                    identifiers_not_found.push(mapping_job);
                 } else {
                     errors.insert(
-                        mapping_jobs[index].clone().into(),
+                        mapping_job.into(),
                         anyhow!(warning).context("failed to get FIGI"),
                     );
                 }
@@ -267,7 +269,7 @@ async fn process_mapping_batch(
             }
         };
 
-        instruments.insert(mapping_jobs[index].clone().into(), metadata);
+        instruments.insert(mapping_job.into(), metadata);
     }
 
     Ok(MappingJobResult {
