@@ -60,7 +60,7 @@ where
         let source_trade = match record.deserialize::<T>(Some(headers)) {
             Ok(trade) => trade,
             Err(err) => {
-                debug!("Failed to deserialize record: {err}");
+                debug!("failed to deserialize record: {err}");
                 skipped += 1;
                 continue;
             }
@@ -97,14 +97,14 @@ where
     transaction.commit()?;
 
     debug!(
-        "Parsed {} trades, imported {} new trades",
+        "parsed {} trades, imported {} new trades",
         parsed,
         trades_to_insert.len(),
     );
     if skipped > 0 {
-        debug!("Skipped {skipped} records that could not be deserialized as trades");
+        debug!("skipped {skipped} records that could not be deserialized as trades");
     }
-    debug!("Imported {} new securities", securities_to_insert.len());
+    debug!("imported {} new securities", securities_to_insert.len());
 
     Ok(())
 }
@@ -209,8 +209,8 @@ fn import_nordnet(file: PathBuf, db: &mut Db) -> Result<(), anyhow::Error> {
         return Err(anyhow!("File contains invalid UTF-16LE text"));
     }
 
-    debug!("Decoded {} bytes", bytes.len());
-    debug!("Decoded using {}", encoding_used.name());
+    debug!("decoded {} bytes", bytes.len());
+    debug!("decoded using {}", encoding_used.name());
 
     let mut reader = ReaderBuilder::new()
         .delimiter(b'\t')

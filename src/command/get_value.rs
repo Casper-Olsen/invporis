@@ -152,7 +152,7 @@ async fn fetch_instrument_metadata(
         FIGI_MAX_WITH_API_KEY
     } else {
         info!(
-            "No {FIGI_API_KEY} provided. Using unauthenticated rate limit of {FIGI_MAX_NO_API_KEY}"
+            "no {FIGI_API_KEY} provided. Using unauthenticated rate limit of {FIGI_MAX_NO_API_KEY}"
         );
         FIGI_MAX_NO_API_KEY
     };
