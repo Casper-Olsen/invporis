@@ -9,6 +9,7 @@ categories = ["command-line-utilities", "finance"]
 keywords = ["cli"]
 
 [dependencies]
+anyhow = "1.0.104"
 calamine = { version = "0.36.1", features = ["chrono"] }
 chrono = { version = "0.4.45", features = ["serde"] }
 clap = { version = "4.6.1", features = ["derive"] }
@@ -18,15 +19,17 @@ directories = "6.0.0"
 encoding_rs = "0.8.35"
 env_logger = "0.11.11"
 log = "0.4.33"
+reqwest = { version = "0.13.4", features = ["json"] }
+reqwest-middleware = "0.5.2"
+reqwest-retry = "0.9.1"
 rusqlite = { version = "0.40.1", default-features = false, features = ["bundled", "chrono"] }
 rusqlite_migration = "2.6.0"
 rust_decimal = { version = "1.42.1", default-features = false, features = ["macros", "serde-with-str", "serde-with-arbitrary-precision", "std"] }
 serde = { version = "1.0.229", features = ["derive"] }
-thiserror = "2.0.18"
-reqwest = { version = "0.13.4", features = ["json"] }
-tokio = { version = "1.53.1", features = ["full"] }
-anyhow = "1.0.104"
+serde_json = "1.0.151"
 serde_rusqlite = "0.43.0"
+thiserror = "2.0.18"
+tokio = { version = "1.53.1", features = ["full"] }
 
 [lints.clippy]
 pedantic = "warn"

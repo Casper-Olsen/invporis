@@ -14,7 +14,7 @@ async fn main() {
     let command = RootCommand::parse();
 
     if let Err(error) = execute(command, DbLocation::Persisted).await {
-        eprintln!("{error}");
+        eprintln!("{error:#}");
         std::process::exit(1);
     }
 }

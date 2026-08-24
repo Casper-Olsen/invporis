@@ -1,6 +1,8 @@
 use anyhow::{Context, Ok, anyhow};
 use log::info;
-use reqwest::header::ACCEPT;
+use reqwest::header::{ACCEPT, CONTENT_TYPE};
+use reqwest_middleware::ClientBuilder;
+use reqwest_retry::{RetryTransientMiddleware, policies::ExponentialBackoff};
 use std::{collections::HashMap, env};
 
 use crate::{
@@ -229,7 +231,6 @@ async fn process_mapping_batch(
 ) -> Result<MappingJobResult, anyhow::Error> {
     let response = post_mapping_jobs(mapping_jobs, figi_api_key).await?;
 
-    // TODO: Implement retry policy
     if !response.status().is_success() {
         return Err(anyhow!(
             "failed to get mappings from OpenFigi. Status code: {}",
@@ -298,17 +299,26 @@ async fn post_mapping_jobs(
     figi_api_key: Option<&String>,
 ) -> Result<reqwest::Response, anyhow::Error> {
     const OPENFIGI_APIKEY: &str = "X-OPENFIGI-APIKEY";
-    let client = reqwest::Client::new();
+    const APPLICATION_JSON: &str = "application/json";
+
+    let retry_policy = ExponentialBackoff::builder().build_with_max_retries(3);
+    let client = ClientBuilder::new(reqwest::Client::new())
+        .with(RetryTransientMiddleware::new_with_policy(retry_policy))
+        .build();
 
     let mut request = client
         .post("https://api.openfigi.com/v3/mapping")
-        .header(ACCEPT, "application/json");
+        .header(ACCEPT, APPLICATION_JSON)
+        .header(CONTENT_TYPE, APPLICATION_JSON);
 
     if let Some(api_key) = figi_api_key {
         request = request.header(OPENFIGI_APIKEY, api_key);
     }
 
-    let response = request.json(mapping_jobs).send().await?;
+    let response = request
+        .body(serde_json::to_vec(mapping_jobs)?)
+        .send()
+        .await?;
 
     Ok(response)
 }
