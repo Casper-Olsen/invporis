@@ -122,6 +122,7 @@ impl Trade {
         let isin = self.isin.as_ref()?;
 
         let mic = if self.provider == Some(DomainProvider::Saxo) {
+            // Expected format like: "BRKb:xnys"
             self.symbol
                 .as_ref()
                 .and_then(|s| s.split_once(':'))
