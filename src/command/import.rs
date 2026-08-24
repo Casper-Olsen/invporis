@@ -21,9 +21,6 @@ use crate::{
     },
 };
 
-const VALUTA: &str = "valuta";
-const SAXO_SHEET_NAME: &str = "Trades";
-
 pub fn run(args: ImportArgs, mut db: Db) -> Result<(), anyhow::Error> {
     match args.provider {
         CliProvider::Nordnet => import_nordnet(args.file, &mut db),
@@ -229,6 +226,8 @@ fn import_nordnet(file: PathBuf, db: &mut Db) -> Result<(), anyhow::Error> {
 }
 
 fn into_nordnet_headers(csv_headers: &StringRecord) -> StringRecord {
+    const VALUTA: &str = "valuta";
+
     let mut headers = StringRecord::new();
 
     // Nordnet exports currency as a separate "Valuta" column immediately following
@@ -338,6 +337,8 @@ pub enum SaxoEvent {
 }
 
 fn import_saxo(file: PathBuf, db: &mut Db) -> Result<(), anyhow::Error> {
+    const SAXO_SHEET_NAME: &str = "Trades";
+
     ensure_extension(&file, "xlsx")?;
 
     let mut workbook: Xlsx<_> = open_workbook(file)?;

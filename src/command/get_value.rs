@@ -1,5 +1,5 @@
-use anyhow::{Ok, anyhow};
-use log::{info, warn};
+use anyhow::{Context, Ok, anyhow};
+use log::info;
 use reqwest::header::ACCEPT;
 use std::{collections::HashMap, env};
 
@@ -9,10 +9,7 @@ use crate::{
     domain::trade::Trade,
 };
 
-const ID_ISIN: &str = "ID_ISIN";
 const FIGI_API_KEY: &str = "INVPORIS_OPENFIGI_API_KEY";
-const FIGI_MAX_NO_API_KEY: usize = 10;
-const FIGI_MAX_WITH_API_KEY: usize = 100;
 
 pub async fn run(db: Db) -> Result<(), anyhow::Error> {
     let figi_api_key = env::var(FIGI_API_KEY).ok();
@@ -25,8 +22,14 @@ pub async fn run(db: Db) -> Result<(), anyhow::Error> {
     let instruments = fetch_instrument_metadata(figi_mappings, figi_api_key).await?;
 
     if !instruments.errors_by_index.is_empty() {
-        // TODO: Should we just print/log all we could not find? Or handle the error somehow
-        warn!("Could not fetch all instruments from OpenFigi");
+        if instruments.instruments_by_index.is_empty() {
+            return Err(anyhow!("could not fetch instruments for any securities"));
+        }
+
+        return Err(anyhow!(
+            "Could not fetch instruments for {} securities",
+            instruments.instruments_by_index.len()
+        ));
     }
 
     for instrument in instruments.instruments_by_index {
@@ -139,6 +142,10 @@ async fn fetch_instrument_metadata(
     mut figi_mappings: Vec<FigiMapping>,
     figi_api_key: Option<String>,
 ) -> Result<InstrumentFetchResult, anyhow::Error> {
+    const ID_ISIN: &str = "ID_ISIN";
+    const FIGI_MAX_NO_API_KEY: usize = 10;
+    const FIGI_MAX_WITH_API_KEY: usize = 100;
+
     let chunk_size = if figi_api_key.is_some() {
         FIGI_MAX_WITH_API_KEY
     } else {
@@ -174,8 +181,9 @@ async fn fetch_instrument_metadata(
             })
             .collect();
 
-        // TODO: Should we handle the error here?
-        let res = process_mapping_batch(&mapping_jobs, figi_api_key.as_ref()).await?;
+        let res = process_mapping_batch(&mapping_jobs, figi_api_key.as_ref())
+            .await
+            .context("failed to process mapping batch")?;
 
         instruments.extend(res.instruments);
         errors.extend(res.errors);
@@ -189,8 +197,9 @@ async fn fetch_instrument_metadata(
         }
 
         for mapping_jobs in identifiers_not_found.chunks(chunk_size) {
-            // TODO: Should we handle the error here?
-            let res = process_mapping_batch(mapping_jobs, figi_api_key.as_ref()).await?;
+            let res = process_mapping_batch(mapping_jobs, figi_api_key.as_ref())
+                .await
+                .context("failed to process mapping batch")?;
 
             instruments.extend(res.instruments);
             errors.extend(res.errors);
@@ -220,18 +229,21 @@ async fn process_mapping_batch(
 ) -> Result<MappingJobResult, anyhow::Error> {
     let response = post_mapping_jobs(mapping_jobs, figi_api_key).await?;
 
-    // TODO: Handle 4xx and 5xx here
+    // TODO: Implement retry policy
     if !response.status().is_success() {
-        return Err(anyhow!("TBD"));
+        return Err(anyhow!(
+            "failed to get mappings from OpenFigi. Status code: {}",
+            response.status()
+        ));
     }
 
-    // TODO: Should we handle the error explicitly here?
-    let mapping_results: Vec<MappingResult> = response.json().await?;
+    let mapping_results: Vec<MappingResult> = response
+        .json()
+        .await
+        .context("failed to deserialize the response body as JSON")?;
 
-    // TODO: Should we add to return var here? Or return Err?
     if mapping_results.is_empty() {
-        warn!("No mappings results returned for chunk"); // TODO: Better log message
-        return Err(anyhow!("TBD"));
+        return Err(anyhow!("no mapping results returned for batch"));
     }
 
     // Most jobs are expected to succeed, so preallocate for the expected number
@@ -244,6 +256,8 @@ async fn process_mapping_batch(
     // The API preserves request order: the result at `index` corresponds to
     // `mapping_jobs[index]`.
     for (index, mapping) in mapping_results.into_iter().enumerate() {
+        const NO_IDENTIFIER_FOUND: &str = "No identifier found.";
+
         let mapping_job = mapping_jobs[index].clone();
 
         let metadata = match mapping {
@@ -256,7 +270,7 @@ async fn process_mapping_batch(
                 continue;
             }
             MappingResult::Warning(warning) => {
-                if mapping_job.mic_code.is_some() && warning == "No identifier found." {
+                if mapping_job.mic_code.is_some() && warning == NO_IDENTIFIER_FOUND {
                     identifiers_not_found.push(mapping_job);
                 } else {
                     errors.insert(
@@ -283,6 +297,7 @@ async fn post_mapping_jobs(
     mapping_jobs: &[MappingJob],
     figi_api_key: Option<&String>,
 ) -> Result<reqwest::Response, anyhow::Error> {
+    const OPENFIGI_APIKEY: &str = "X-OPENFIGI-APIKEY";
     let client = reqwest::Client::new();
 
     let mut request = client
@@ -290,7 +305,7 @@ async fn post_mapping_jobs(
         .header(ACCEPT, "application/json");
 
     if let Some(api_key) = figi_api_key {
-        request = request.header("X-OPENFIGI-APIKEY", api_key);
+        request = request.header(OPENFIGI_APIKEY, api_key);
     }
 
     let response = request.json(mapping_jobs).send().await?;

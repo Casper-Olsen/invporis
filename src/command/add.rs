@@ -39,7 +39,7 @@ pub fn run(args: AddArgs, db: &Db) -> Result<(), anyhow::Error> {
 
     trade_store::insert_trade(db, &trade)?;
 
-    println!("Added trade with event: {}", args.event.to_string().green());
+    eprintln!("Added trade with event: {}", args.event.to_string().green());
 
     Ok(())
 }
