@@ -3,12 +3,15 @@ use log::info;
 use reqwest::header::{ACCEPT, CONTENT_TYPE};
 use reqwest_middleware::ClientBuilder;
 use reqwest_retry::{RetryTransientMiddleware, policies::ExponentialBackoff};
-use std::{collections::HashMap, env};
+use rust_decimal::{Decimal, dec};
+use std::{collections::HashMap, env, ops::AddAssign, result::Result};
 
 use crate::{
     data::{db::Db, trade_store},
-    domain::trade::Provider as DomainProvider,
-    domain::trade::Trade,
+    domain::{
+        asset::{Asset, Crypto, Equity, EquityDetails, FigiData},
+        trade::{EquityTrade, Provider as DomainProvider, Trade},
+    },
 };
 
 const FIGI_API_KEY: &str = "INVPORIS_OPENFIGI_API_KEY";
@@ -18,8 +21,13 @@ pub async fn run(db: Db) -> Result<(), anyhow::Error> {
 
     let trades = trade_store::list_trades(&db)?;
 
-    let figi_mappings: Vec<FigiMapping> =
-        trades.iter().filter_map(Trade::to_figi_mapping).collect();
+    let figi_mappings: Vec<FigiMapping> = trades
+        .iter()
+        .filter_map(|t| match t {
+            Trade::Equity(equity_trade) => Some(EquityTrade::to_figi_mapping(equity_trade)),
+            Trade::Crypto(_) => None,
+        })
+        .collect();
 
     let instruments = fetch_instrument_metadata(figi_mappings, figi_api_key).await?;
 
@@ -29,21 +37,45 @@ pub async fn run(db: Db) -> Result<(), anyhow::Error> {
         }
 
         return Err(anyhow!(
-            "Could not fetch instruments for {} securities",
+            "could not fetch instruments for {} securities",
             instruments.instruments_by_index.len()
         ));
     }
 
-    for instrument in instruments.instruments_by_index {
-        println!("Figi: {:?}", instrument.0);
+    let mut positions: HashMap<Asset, Decimal> = HashMap::new();
 
-        for metadata in instrument.1 {
-            println!("{metadata:?}");
-        }
+    for trade in trades {
+        let quantity = match &trade {
+            Trade::Equity(e) => e.quantity,
+            Trade::Crypto(c) => c.quantity,
+        };
+
+        let asset = match trade {
+            Trade::Equity(equity_trade) => {
+                let equity = equity_from_trade(&equity_trade, &instruments.instruments_by_index)?;
+
+                Asset::Equity(equity)
+            }
+            Trade::Crypto(crypto_trade) => Asset::Crypto(Crypto {
+                symbol: crypto_trade.symbol,
+                currency: crypto_trade.price.currency,
+            }),
+        };
+
+        positions
+            .entry(asset)
+            .or_insert_with(|| dec!(0))
+            .add_assign(quantity);
     }
 
-    // TODO: Filter out trades we dont want before calculating total vavlue.
-    // - If we don't own any (Buy - Sell = 0)
+    // TODO: For a stock where we have the same ISIN, but not the same a MIC in both,
+    // we need to combine them, because they are the same asset. Currently we have two different
+    // positions.
+    let _total_value = get_total_value(
+        positions
+            .iter()
+            .filter(|(_, quantity)| **quantity > Decimal::ZERO),
+    );
 
     Ok(())
 }
@@ -107,6 +139,18 @@ struct FigiMapping {
     market_identifier_code: Option<String>,
 }
 
+impl std::fmt::Display for FigiMapping {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "ISIN: {}, Currency: {}, MIC: {}",
+            self.isin,
+            self.currency,
+            self.market_identifier_code.as_deref().unwrap_or("N/A")
+        )
+    }
+}
+
 impl From<MappingJob> for FigiMapping {
     fn from(mapping_job: MappingJob) -> Self {
         Self {
@@ -117,9 +161,9 @@ impl From<MappingJob> for FigiMapping {
     }
 }
 
-impl Trade {
-    fn to_figi_mapping(&self) -> Option<FigiMapping> {
-        let isin = self.isin.as_ref()?;
+impl EquityTrade {
+    fn to_figi_mapping(&self) -> FigiMapping {
+        let isin = &self.isin;
 
         let mic = if self.provider == Some(DomainProvider::Saxo) {
             // Expected format like: "BRKb:xnys"
@@ -131,13 +175,11 @@ impl Trade {
             None
         };
 
-        let fm = FigiMapping {
-            isin: isin.to_owned(),
+        FigiMapping {
+            isin: isin.clone(),
             currency: self.price.currency.clone(),
             market_identifier_code: mic,
-        };
-
-        Some(fm)
+        }
     }
 }
 
@@ -322,4 +364,72 @@ async fn post_mapping_jobs(
         .await?;
 
     Ok(response)
+}
+
+fn equity_from_trade(
+    trade: &EquityTrade,
+    instruments: &HashMap<FigiMapping, Vec<InstrumentMetadata>>,
+) -> Result<Equity, anyhow::Error> {
+    let mut mapping = EquityTrade::to_figi_mapping(trade);
+    let metadata = instruments.get(&mapping);
+
+    if let Some(metadata) = metadata {
+        return equity_from_metadata(metadata, mapping);
+    }
+
+    // No MIC is available, so there is no further mapping we can try.
+    if mapping.market_identifier_code.is_none() {
+        return Err(anyhow!("could not find metadata for {mapping}"));
+    }
+
+    // The trade has a MIC. But no FIGI mapping was found with the ISIN/Currency/MIC combination.
+    // Look up the mapping without the MIC. A mapping should exist.
+    mapping.market_identifier_code = None;
+    let metadata = instruments.get(&mapping);
+
+    if let Some(metadata) = metadata {
+        return equity_from_metadata(metadata, mapping);
+    }
+
+    Err(anyhow!("could not find metadata"))
+}
+
+fn equity_from_metadata(
+    metadata: &[InstrumentMetadata],
+    mapping: FigiMapping,
+) -> Result<Equity, anyhow::Error> {
+    // TODO:
+    // Priority when getting FIGI mapping (when there are more than one)
+    // 1. If only one FIGI, use that one
+    // 2. If multiple, find where FIGI == CompositeFIGI
+    // 3. If only one match, use that one
+    // 4. If multiple matches, then use the dominant one; the CompositeFIGI in the most mappings
+    // 5. If there is a tie, use a preferred list of exchanges in order, so it's consistent. When creating the ordered list, prefer liquid exchanges
+    // 6. If we have no FIGI == CompositeFIGI, then fail and log it as an error.
+
+    let first = metadata
+        .first()
+        .ok_or_else(|| anyhow!("could not find metadata for {mapping}"))?;
+
+    Ok(Equity {
+        figi_data: FigiData {
+            ticker: first.ticker.clone(),
+            exchange_code: first.exchange_code.clone(),
+            figi: first.figi.clone(),
+        },
+        details: EquityDetails {
+            isin: mapping.isin,
+            currency: mapping.currency,
+            market_identifier_code: mapping.market_identifier_code,
+        },
+    })
+}
+
+fn get_total_value<'a>(positions: impl Iterator<Item = (&'a Asset, &'a Decimal)>) -> Decimal {
+    for (position, quantity) in positions {
+        println!("{position:?}: {quantity}");
+    }
+
+    // TODO: Get current asset prices and calculate total value for portfolio.
+    dec!(0)
 }

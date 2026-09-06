@@ -17,7 +17,7 @@ use crate::{
     data::{db::Db, security_store, trade_store},
     domain::{
         security::Security,
-        trade::{AssetType, MonetaryAmount, Provider as DomainProvider, Trade},
+        trade::{CryptoTrade, EquityTrade, MonetaryAmount, Provider as DomainProvider, Trade},
     },
 };
 
@@ -71,12 +71,13 @@ where
 
         parsed += 1;
 
+        let provider_id = match &trade {
+            Trade::Equity(equity_trade) => &equity_trade.provider_id,
+            Trade::Crypto(crypto_trade) => &crypto_trade.provider_id,
+        };
+
         // We don't want to insert the same trade multiple times
-        if trade
-            .provider_id
-            .as_ref()
-            .is_none_or(|id| trades.contains(id))
-        {
+        if provider_id.as_ref().is_none_or(|id| trades.contains(id)) {
             continue;
         }
 
@@ -158,16 +159,15 @@ impl ImportTrade for NordnetTrade {
     }
 
     fn into_trade(self) -> Trade {
-        self.into()
+        Trade::Equity(self.into())
     }
 }
 
-impl From<NordnetTrade> for Trade {
+impl From<NordnetTrade> for EquityTrade {
     fn from(nordnet_trade: NordnetTrade) -> Self {
         Self {
             event: nordnet_trade.event.into(),
-            isin: Some(nordnet_trade.isin),
-            asset_type: AssetType::Security,
+            isin: nordnet_trade.isin,
             symbol: None,
             quantity: nordnet_trade.quantity,
             price: MonetaryAmount {
@@ -300,16 +300,15 @@ impl ImportTrade for SaxoTrade {
     }
 
     fn into_trade(self) -> Trade {
-        self.into()
+        Trade::Equity(self.into())
     }
 }
 
-impl From<SaxoTrade> for Trade {
+impl From<SaxoTrade> for EquityTrade {
     fn from(saxo_trade: SaxoTrade) -> Self {
         Self {
             event: saxo_trade.event.into(),
-            isin: Some(saxo_trade.isin),
-            asset_type: AssetType::Security,
+            isin: saxo_trade.isin,
             symbol: Some(saxo_trade.symbol),
             quantity: saxo_trade.quantity,
             price: MonetaryAmount {
@@ -477,17 +476,15 @@ impl ImportTrade for CoinbaseTrade {
     }
 
     fn into_trade(self) -> Trade {
-        self.into()
+        Trade::Crypto(self.into())
     }
 }
 
-impl From<CoinbaseTrade> for Trade {
+impl From<CoinbaseTrade> for CryptoTrade {
     fn from(coinbase_trade: CoinbaseTrade) -> Self {
         Self {
             event: coinbase_trade.event.into(),
-            isin: None,
-            asset_type: AssetType::Crypto,
-            symbol: Some(coinbase_trade.symbol),
+            symbol: coinbase_trade.symbol,
             quantity: coinbase_trade.quantity,
             price: MonetaryAmount {
                 amount: coinbase_trade.price,

@@ -29,7 +29,7 @@ mod tests {
     use rust_decimal::dec;
 
     use crate::{
-        cli::command::{AddArgs, Commands, RootCommand},
+        cli::command::{AddEquityArgs, Commands, RootCommand},
         data::db::DbLocation,
         execute,
     };
@@ -38,11 +38,10 @@ mod tests {
     async fn test_add_trade() {
         let dkk = String::from("DKK");
         let root_command = RootCommand {
-            command: Commands::Add(AddArgs {
+            command: Commands::AddEquity(AddEquityArgs {
                 event: crate::cli::command::Event::Buy,
-                asset_type: crate::cli::command::AssetType::Security,
+                isin: String::from("test"),
                 symbol: None,
-                isin: Some(String::from("test")),
                 quantity: dec!(33),
                 price: dec!(100),
                 price_currency: dkk.clone(),

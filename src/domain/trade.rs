@@ -1,15 +1,22 @@
 use chrono::NaiveDate;
 use rust_decimal::Decimal;
+use std::hash::Hash;
 
 use crate::{
     cli,
     command::import::{CoinbaseEvent, NordnetEvent, SaxoEvent},
 };
 
-pub struct Trade {
+#[derive(Debug, Eq, PartialEq, Hash)]
+pub enum Trade {
+    Equity(EquityTrade),
+    Crypto(CryptoTrade),
+}
+
+#[derive(Debug)]
+pub struct EquityTrade {
     pub event: Event,
-    pub isin: Option<String>,
-    pub asset_type: AssetType,
+    pub isin: String,
     pub symbol: Option<String>,
     pub quantity: Decimal,
     pub price: MonetaryAmount,
@@ -18,6 +25,49 @@ pub struct Trade {
     pub provider: Option<Provider>,
     pub provider_id: Option<String>,
 }
+
+// TODO: Should we have symbol here (and in hash)?
+impl PartialEq for EquityTrade {
+    fn eq(&self, other: &Self) -> bool {
+        self.isin == other.isin && self.price.currency == other.price.currency
+    }
+}
+
+impl Hash for EquityTrade {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.isin.hash(state);
+        self.price.currency.hash(state);
+    }
+}
+
+impl Eq for EquityTrade {}
+
+#[derive(Debug)]
+pub struct CryptoTrade {
+    pub event: Event,
+    pub symbol: String,
+    pub quantity: Decimal,
+    pub price: MonetaryAmount,
+    pub fee: MonetaryAmount,
+    pub executed_date: NaiveDate,
+    pub provider: Option<Provider>,
+    pub provider_id: Option<String>,
+}
+
+impl PartialEq for CryptoTrade {
+    fn eq(&self, other: &Self) -> bool {
+        self.symbol == other.symbol && self.price.currency == other.price.currency
+    }
+}
+
+impl Hash for CryptoTrade {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.symbol.hash(state);
+        self.price.currency.hash(state);
+    }
+}
+
+impl Eq for CryptoTrade {}
 
 #[derive(serde::Deserialize, Clone, Copy, Debug)]
 pub enum Event {
@@ -95,28 +145,19 @@ impl Provider {
     }
 }
 
-#[derive(serde::Deserialize, Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, serde::Deserialize)]
 pub enum AssetType {
-    #[serde(rename = "security")]
-    Security,
+    #[serde(rename = "equity")]
+    Equity,
 
     #[serde(rename = "crypto")]
     Crypto,
 }
 
-impl From<crate::cli::command::AssetType> for AssetType {
-    fn from(value: crate::cli::command::AssetType) -> Self {
-        match value {
-            cli::command::AssetType::Security => Self::Security,
-            cli::command::AssetType::Crypto => Self::Crypto,
-        }
-    }
-}
-
 impl AssetType {
     pub const fn as_str(self) -> &'static str {
         match self {
-            Self::Security => "security",
+            Self::Equity => "equity",
             Self::Crypto => "crypto",
         }
     }

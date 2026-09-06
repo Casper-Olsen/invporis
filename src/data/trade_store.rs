@@ -6,7 +6,7 @@ use std::collections::HashSet;
 
 use crate::{
     data::db::Db,
-    domain::trade::{MonetaryAmount, Provider, Trade},
+    domain::trade::{AssetType, CryptoTrade, EquityTrade, MonetaryAmount, Provider, Trade},
 };
 
 const INSERT_SQL: &str =
@@ -16,23 +16,45 @@ const INSERT_SQL: &str =
 const SELECT_SQL: &str = "SELECT event, isin, asset_type, symbol, quantity, price, price_currency, fee, fee_currency, executed_date, provider, provider_id FROM trades";
 
 pub fn insert_trade(db: &Db, trade: &Trade) -> Result<(), anyhow::Error> {
-    db.connection.execute(
-        INSERT_SQL,
-        params![
-            trade.event.as_str(),
-            trade.isin,
-            trade.asset_type.as_str(),
-            trade.symbol,
-            trade.quantity.to_string(),
-            trade.price.amount.to_string(),
-            trade.price.currency.clone(),
-            trade.fee.amount.to_string(),
-            trade.fee.currency.clone(),
-            trade.executed_date,
-            trade.provider.map(crate::domain::trade::Provider::as_str),
-            trade.provider_id
+    // TODO: Refactor into fn so it can be used here and in insert_trades
+    let params = match trade {
+        Trade::Equity(equity_trade) => {
+            params![
+                equity_trade.event.as_str(),
+                equity_trade.isin,
+                AssetType::Equity.as_str(),
+                equity_trade.symbol,
+                equity_trade.quantity.to_string(),
+                equity_trade.price.amount.to_string(),
+                equity_trade.price.currency.clone(),
+                equity_trade.fee.amount.to_string(),
+                equity_trade.fee.currency.clone(),
+                equity_trade.executed_date,
+                equity_trade
+                    .provider
+                    .map(crate::domain::trade::Provider::as_str),
+                equity_trade.provider_id
+            ]
+        }
+        Trade::Crypto(crypto_trade) => params![
+            crypto_trade.event.as_str(),
+            None::<String>,
+            AssetType::Crypto.as_str(),
+            crypto_trade.symbol,
+            crypto_trade.quantity.to_string(),
+            crypto_trade.price.amount.to_string(),
+            crypto_trade.price.currency.clone(),
+            crypto_trade.fee.amount.to_string(),
+            crypto_trade.fee.currency.clone(),
+            crypto_trade.executed_date,
+            crypto_trade
+                .provider
+                .map(crate::domain::trade::Provider::as_str),
+            crypto_trade.provider_id
         ],
-    )?;
+    };
+
+    db.connection.execute(INSERT_SQL, params)?;
 
     Ok(())
 }
@@ -41,20 +63,43 @@ pub fn insert_trades(transaction: &Transaction, trades: &Vec<Trade>) -> Result<(
     let mut statement = transaction.prepare(INSERT_SQL)?;
 
     for trade in trades {
-        statement.execute(params![
-            trade.event.as_str(),
-            trade.isin,
-            trade.asset_type.as_str(),
-            trade.symbol,
-            trade.quantity.to_string(),
-            trade.price.amount.to_string(),
-            trade.price.currency.clone(),
-            trade.fee.amount.to_string(),
-            trade.fee.currency.clone(),
-            trade.executed_date,
-            trade.provider.map(crate::domain::trade::Provider::as_str),
-            trade.provider_id
-        ])?;
+        let params = match trade {
+            Trade::Equity(equity_trade) => {
+                params![
+                    equity_trade.event.as_str(),
+                    equity_trade.isin,
+                    AssetType::Equity.as_str(),
+                    equity_trade.symbol,
+                    equity_trade.quantity.to_string(),
+                    equity_trade.price.amount.to_string(),
+                    equity_trade.price.currency.clone(),
+                    equity_trade.fee.amount.to_string(),
+                    equity_trade.fee.currency.clone(),
+                    equity_trade.executed_date,
+                    equity_trade
+                        .provider
+                        .map(crate::domain::trade::Provider::as_str),
+                    equity_trade.provider_id
+                ]
+            }
+            Trade::Crypto(crypto_trade) => params![
+                crypto_trade.event.as_str(),
+                None::<String>,
+                AssetType::Crypto.as_str(),
+                crypto_trade.symbol,
+                crypto_trade.quantity.to_string(),
+                crypto_trade.price.amount.to_string(),
+                crypto_trade.price.currency.clone(),
+                crypto_trade.fee.amount.to_string(),
+                crypto_trade.fee.currency.clone(),
+                crypto_trade.executed_date,
+                crypto_trade
+                    .provider
+                    .map(crate::domain::trade::Provider::as_str),
+                crypto_trade.provider_id
+            ],
+        };
+        statement.execute(params)?;
     }
 
     Ok(())
@@ -89,12 +134,11 @@ struct TradeRow {
     pub provider_id: Option<String>,
 }
 
-impl From<TradeRow> for Trade {
+impl From<TradeRow> for EquityTrade {
     fn from(trade_row: TradeRow) -> Self {
         Self {
             event: trade_row.event,
-            isin: trade_row.isin,
-            asset_type: trade_row.asset_type,
+            isin: trade_row.isin.expect("equity trade must have ISIN"),
             symbol: trade_row.symbol,
             quantity: trade_row.quantity,
             price: MonetaryAmount {
@@ -111,13 +155,38 @@ impl From<TradeRow> for Trade {
         }
     }
 }
+
+impl From<TradeRow> for CryptoTrade {
+    fn from(trade_row: TradeRow) -> Self {
+        Self {
+            event: trade_row.event,
+            symbol: trade_row.symbol.expect("crypto trade must have symbol"),
+            quantity: trade_row.quantity,
+            price: MonetaryAmount {
+                amount: trade_row.price,
+                currency: trade_row.price_currency,
+            },
+            fee: MonetaryAmount {
+                amount: trade_row.fee,
+                currency: trade_row.fee_currency,
+            },
+            executed_date: trade_row.executed_date,
+            provider: trade_row.provider,
+            provider_id: trade_row.provider_id,
+        }
+    }
+}
+
 pub fn list_trades(db: &Db) -> Result<Vec<Trade>, anyhow::Error> {
     let mut statement = db.connection.prepare(SELECT_SQL)?;
 
     from_rows::<TradeRow>(statement.query([])?)
         .map(|r| {
             let row = r.map_err(anyhow::Error::from)?;
-            Ok(Trade::from(row))
+            match row.asset_type {
+                AssetType::Equity => Ok(Trade::Equity(EquityTrade::from(row))),
+                AssetType::Crypto => Ok(Trade::Crypto(CryptoTrade::from(row))),
+            }
         })
         .collect::<Result<Vec<_>, _>>()
 }

@@ -18,7 +18,8 @@ pub async fn execute(
     migration::migrate(&mut db)?;
 
     match root_command.command {
-        Commands::Add(args) => add::run(args, &db),
+        Commands::AddEquity(args) => add::run_for_equity(args, &db),
+        Commands::AddCrypto(args) => add::run_for_crypto(args, &db),
         Commands::Import(args) => import::run(args, db),
         Commands::GetValue => get_value::run(db).await,
     }

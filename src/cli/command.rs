@@ -15,32 +15,60 @@ pub struct RootCommand {
 /// Subcommands
 #[derive(Subcommand)]
 pub enum Commands {
-    // Add a trade
-    #[command(about = "Add a trade")]
-    Add(AddArgs),
+    /// Add an equity trade
+    #[command()]
+    AddEquity(AddEquityArgs),
+
+    /// Add a crypto trade
+    #[command()]
+    AddCrypto(AddCryptoArgs),
 
     /// Get value of portfolio (defaults to the total value of the portfolio)
-    #[command(about = "Get value of portfolio")]
+    #[command()]
     GetValue,
 
     /// Import trades
-    #[command(about = "Import trades from file")]
+    #[command()]
     Import(ImportArgs),
 }
 
 #[derive(Args)]
-pub struct AddArgs {
+pub struct AddEquityArgs {
     #[arg(long, short = 'e', required = false, default_value_t = Event::Buy)]
     pub event: Event,
 
-    #[arg(long, short = 'a', required = false, default_value_t = AssetType::Security)]
-    pub asset_type: AssetType,
+    #[arg(long, short = 'i', required = false)]
+    pub isin: String,
 
     #[arg(long, short = 's', required = false)]
     pub symbol: Option<String>,
 
-    #[arg(long, short = 'i', required = false)]
-    pub isin: Option<String>,
+    #[arg(long, short = 'q', required = false, default_value_t = dec!(1))]
+    pub quantity: Decimal,
+
+    #[arg(long, short = 'p', required = true)]
+    pub price: Decimal,
+
+    #[arg(long, required = false, default_value = "DKK")]
+    pub price_currency: String,
+
+    #[arg(long, short = 'd', required = true)]
+    pub executed_date: NaiveDate,
+
+    #[arg(long, short = 'f', required = false, default_value_t = dec!(0))]
+    pub fee: Decimal,
+
+    #[arg(long, required = false, default_value = "DKK")]
+    pub fee_currency: String,
+}
+
+#[derive(Args)]
+pub struct AddCryptoArgs {
+    #[arg(long, short = 'e', required = false, default_value_t = Event::Buy)]
+    pub event: Event,
+
+    #[arg(long, short = 's', required = false)]
+    pub symbol: String,
 
     #[arg(long, short = 'q', required = false, default_value_t = dec!(1))]
     pub quantity: Decimal,
@@ -80,22 +108,6 @@ impl std::fmt::Display for Event {
         let s = match self {
             Self::Buy => "buy",
             Self::Sell => "sell",
-        };
-        write!(f, "{s}")
-    }
-}
-
-#[derive(ValueEnum, Clone, Debug)]
-pub enum AssetType {
-    Security,
-    Crypto,
-}
-
-impl std::fmt::Display for AssetType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let s = match self {
-            Self::Security => "security",
-            Self::Crypto => "crypto",
         };
         write!(f, "{s}")
     }
