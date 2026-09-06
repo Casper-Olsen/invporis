@@ -68,7 +68,7 @@ pub async fn run(db: Db) -> Result<(), anyhow::Error> {
             .add_assign(quantity);
     }
 
-    // TODO: For a stock where we have the same ISIN, but not the same a MIC in both,
+    // TODO: For a stock where we have the same ISIN/Currency, but not the same a MIC in both,
     // we need to combine them, because they are the same asset. Currently we have two different
     // positions.
     let _total_value = get_total_value(
